@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 from config import PATH_TO_CFG, PATH_TO_CKPT, PATH_TO_LABELS
 
-print("Hello")
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    
 
@@ -35,7 +34,6 @@ def detect(img):
 
     return (detections, prediction_dict, tf.reshape(shapes, [-1]))
     
-
 #Load label map
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 cap = cv2.VideoCapture(0)
