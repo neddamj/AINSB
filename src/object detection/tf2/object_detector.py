@@ -3,7 +3,7 @@
 import os 
 import cv2
 import numpy as np
-from config import PATH_TO_CFG, PATH_TO_CKPT, PATH_TO_LABELS
+from config import PATH_TO_LABELS, path_to_cfg, path_to_ckpt
 
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    
@@ -17,12 +17,12 @@ from object_detection.utils import visualization_utils as viz_utils
 tf.get_logger().setLevel('ERROR')    
 
 print("[INFO] Building model pipeline and detector...")
-configs = config_util.get_configs_from_pipeline_file(PATH_TO_CFG)
+configs = config_util.get_configs_from_pipeline_file(path_to_cfg(model='ssd_mobilenetv2'))
 model_config = configs['model']
 detector = model_builder.build(model_config=model_config, is_training=False)
 
 print("[INFO] Restoring model checkpoint...")
-PATH_TO_RESTORE = os.path.join(PATH_TO_CKPT, 'ckpt-0')
+PATH_TO_RESTORE = os.path.join(path_to_ckpt(model='ssd_mobilenetv2'), 'ckpt-0')
 ckpt = tf.compat.v2.train.Checkpoint(model=detector)
 ckpt.restore(PATH_TO_RESTORE).expect_partial()
 
@@ -61,12 +61,13 @@ while True:
           category_index,
           use_normalized_coordinates=True,
           max_boxes_to_draw=200,
-          min_score_thresh=.6,
+          min_score_thresh=.50,
           agnostic_mode=False)
 
     cv2.imshow('Webcam', frame2)    
 
-    if cv2.waitKey(25) & 0xFF == ord('q'):
+    key = cv2.waitKey(25) & 0xFF
+    if key == ord('q'):
         print("[INFO] Ending video stream...")
         break
 

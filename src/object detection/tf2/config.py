@@ -15,10 +15,10 @@ for dir in [DATA_DIR, MODELS_DIR]:
     if not os.path.exists(dir):
         print("[INFO] Creating directory...")
         os.mkdir(dir)
-        
+
 # Download and extract model
 MODEL_DATE = '20200711'
-MODEL_NAME = 'efficientdet_d1_coco17_tpu-32'
+MODEL_NAME = 'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8'
 MODEL_TAR_FILENAME = MODEL_NAME + '.tar.gz'
 MODELS_DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/tf2/'
 MODEL_DOWNLOAD_LINK = MODELS_DOWNLOAD_BASE + MODEL_DATE + '/' + MODEL_TAR_FILENAME
@@ -43,3 +43,15 @@ if not os.path.exists(PATH_TO_LABELS):
     print('Downloading label file... ', end='')
     urllib.request.urlretrieve(LABELS_DOWNLOAD_BASE + LABEL_FILENAME, PATH_TO_LABELS)
     print('Labels downloaded')
+
+def path_to_ckpt(model):
+    if model == 'ssd_mobilenetv2':
+        return os.path.join(MODELS_DIR, os.path.join('ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8', 'checkpoint/'))
+    elif model == 'efficientdet_d0':
+        return os.path.join(MODELS_DIR, os.path.join('efficientdet_d0_coco17_tpu-32', 'checkpoint/'))
+
+def path_to_cfg(model):
+    if model == 'ssd_mobilenetv2':
+        return os.path.join(MODELS_DIR, os.path.join('ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8', 'pipeline.config'))
+    elif model == 'efficientdet_d0':
+        return os.path.join(MODELS_DIR, os.path.join('efficientdet_d0_coco17_tpu-32', 'pipeline.config'))    
