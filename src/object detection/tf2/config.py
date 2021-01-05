@@ -45,13 +45,13 @@ if not os.path.exists(PATH_TO_LABELS):
     print('Labels downloaded')
 
 def path_to_ckpt(model):
-    if model == 'ssd_mobilenetv2':
+    if model == 'ssdmobilenet_v2':
         return os.path.join(MODELS_DIR, os.path.join('ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8', 'checkpoint/'))
     elif model == 'efficientdet_d0':
         return os.path.join(MODELS_DIR, os.path.join('efficientdet_d0_coco17_tpu-32', 'checkpoint/'))
 
 def path_to_cfg(model):
-    if model == 'ssd_mobilenetv2':
+    if model == 'ssdmobilenet_v2':
         return os.path.join(MODELS_DIR, os.path.join('ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8', 'pipeline.config'))
     elif model == 'efficientdet_d0':
         return os.path.join(MODELS_DIR, os.path.join('efficientdet_d0_coco17_tpu-32', 'pipeline.config'))    

@@ -17,12 +17,12 @@ from object_detection.utils import visualization_utils as viz_utils
 tf.get_logger().setLevel('ERROR')    
 
 print("[INFO] Building model pipeline and detector...")
-configs = config_util.get_configs_from_pipeline_file(path_to_cfg(model='ssd_mobilenetv2'))
+configs = config_util.get_configs_from_pipeline_file(path_to_cfg(model='ssdmobilenet_v2'))
 model_config = configs['model']
 detector = model_builder.build(model_config=model_config, is_training=False)
 
 print("[INFO] Restoring model checkpoint...")
-PATH_TO_RESTORE = os.path.join(path_to_ckpt(model='ssd_mobilenetv2'), 'ckpt-0')
+PATH_TO_RESTORE = os.path.join(path_to_ckpt(model='ssdmobilenet_v2'), 'ckpt-0')
 ckpt = tf.compat.v2.train.Checkpoint(model=detector)
 ckpt.restore(PATH_TO_RESTORE).expect_partial()
 
