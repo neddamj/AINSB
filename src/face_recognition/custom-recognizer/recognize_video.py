@@ -1,6 +1,8 @@
 '''
-Author: Jordan Madden
-Usage: python recognize_video.py --detector=face_detection_model --embedding-model=openface_nn4.small2.v1.t7 --recognizer=output/recognizer.pickle --le=output/le.pickle
+	Author: Jordan Madden
+	Title: recognize_video.py
+	Date: 9/1/2021
+	Usage: python recognize_video.py 
 '''
 
 # import the necessary packages
@@ -12,34 +14,27 @@ import time
 import cv2
 import os
 
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-d", "--detector", required=True,
-	help="path to OpenCV's deep learning face detector")
-ap.add_argument("-m", "--embedding-model", required=True,
-	help="path to OpenCV's deep learning face embedding model")
-ap.add_argument("-r", "--recognizer", required=True,
-	help="path to model trained to recognize faces")
-ap.add_argument("-l", "--le", required=True,
-	help="path to label encoder")
-ap.add_argument("-c", "--confidence", type=float, default=0.5,
-	help="minimum probability to filter weak detections")
-args = vars(ap.parse_args())
+# declare relevant constants(filepaths etc)
+DETECTOR = "face_detection_model"
+EMBEDDING_MODEL = "openface_nn4.small2.v1.t7"
+RECOGNIZER = "output/recognizer.pickle"
+CONFIDENCE = 0.50
+LE = "output/le.pickle"
 
 # load our serialized face detector from disk
 print("[INFO] loading face detector...")
-protoPath = os.path.sep.join([args["detector"], "deploy.prototxt"])
-modelPath = os.path.sep.join([args["detector"],
+protoPath = os.path.sep.join([DETECTOR, "deploy.prototxt"])
+modelPath = os.path.sep.join([DETECTOR,
 	"res10_300x300_ssd_iter_140000.caffemodel"])
 detector = cv2.dnn.readNetFromCaffe(protoPath, modelPath)
 
 # load our serialized face embedding model from disk
 print("[INFO] loading face recognizer...")
-embedder = cv2.dnn.readNetFromTorch(args["embedding_model"])
+embedder = cv2.dnn.readNetFromTorch(EMBEDDING_MODEL)
 
 # load the actual face recognition model along with the label encoder
-recognizer = pickle.loads(open(args["recognizer"], "rb").read())
-le = pickle.loads(open(args["le"], "rb").read())
+recognizer = pickle.loads(open(RECOGNIZER, "rb").read())
+le = pickle.loads(open(LE, "rb").read())
 
 # initialize the video stream, then allow the camera sensor to warm up
 print("[INFO] starting video stream...")
@@ -65,7 +60,7 @@ while True:
 
 	for i in range(0, detections.shape[2]):
 		confidence = detections[0, 0, i, 2]
-		if confidence > args["confidence"]:
+		if confidence >= CONFIDENCE:
 			# compute the (x, y)-coordinates of the bounding box for the face
 			box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
 			(startX, startY, endX, endY) = box.astype("int")
