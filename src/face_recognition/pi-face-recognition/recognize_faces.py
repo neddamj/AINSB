@@ -1,9 +1,8 @@
-# USAGE
-# python pi_face_recognition.py --cascade haarcascade_frontalface_default.xml --encodings encodings.pickle
-
-# import the necessary packages
-from imutils.video import VideoStream
-from imutils.video import FPS
+'''
+	Author: Jordan Madden
+	Title: recognize_faces.py
+	Date: 9/1/2021
+'''
 import face_recognition
 import argparse
 import imutils
@@ -11,34 +10,27 @@ import pickle
 import time
 import cv2
 
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-c", "--cascade", required=True,
-	help = "path to where the face cascade resides")
-ap.add_argument("-e", "--encodings", required=True,
-	help="path to serialized db of facial encodings")
-args = vars(ap.parse_args())
+# declare relevant constants(filepaths etc)
+CASCADE = "haarcascade_frontalface_default.xml"
+ENCODINGS = "encodings.pickle"
 
 # load the known faces and embeddings along with OpenCV's Haar
 # cascade for face detection
 print("[INFO] loading encodings + face detector...")
-data = pickle.loads(open(args["encodings"], "rb").read())
-detector = cv2.CascadeClassifier(args["cascade"])
+data = pickle.loads(open(ENCODINGS, "rb").read())
+detector = cv2.CascadeClassifier(CASCADE)
 
 # initialize the video stream and allow the camera sensor to warm up
 print("[INFO] starting video stream...")
-vs = VideoStream(src=0).start()
-# vs = VideoStream(usePiCamera=True).start()
-time.sleep(2.0)
+cap = cv2.VideoCapture(0)
+time.sleep(1.0)
 
-# start the FPS counter
-fps = FPS().start()
-
-# loop over frames from the video file stream
 while True:
 	# grab the frame from the threaded video stream and resize it
 	# to 500px (to speedup processing)
-	frame = vs.read()
+	ret, frame = cap.read()
+	if not ret:
+		break
 	frame = imutils.resize(frame, width=500)
 	
 	# convert the input frame from (1) BGR to grayscale (for face
@@ -60,10 +52,9 @@ while True:
 	encodings = face_recognition.face_encodings(rgb, boxes)
 	names = []
 
-	# loop over the facial embeddings
+	# attempt to match each face in the input image to our known
+	# encodings
 	for encoding in encodings:
-		# attempt to match each face in the input image to our known
-		# encodings
 		matches = face_recognition.compare_faces(data["encodings"],
 			encoding)
 		name = "Unknown"
@@ -102,19 +93,8 @@ while True:
 	# display the image to our screen
 	cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
-
-	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
 		break
 
-	# update the FPS counter
-	fps.update()
-
-# stop the timer and display FPS information
-fps.stop()
-print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-
-# do a bit of cleanup
+cap.release()
 cv2.destroyAllWindows()
-vs.stop()
