@@ -29,5 +29,5 @@ As before, 2 approaches were taken here. In the first approach, I developed a cu
 ## Text to Speech
 Here, I made use of Google's Text to Speech(TTS) API and the playsound library. The TTS API allowed me to convert text into .mp3 files and the playsound library allowed me to playback these .mp3 files as audio.
 
-##Tactile Feedback
+## Tactile Feedback
 Here, the atmega328p should receive data from the raspberry pi using the UART protocol and it should trigger motors based on the data it recieves from the pi.
