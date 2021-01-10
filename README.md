@@ -12,7 +12,6 @@ The secondary/stretch objectives include:
 * Accept voice commands from the user 
 
 As such, the software implementation of the project up to this point has been divided into the following section:
-* Depth Estimation
 * Face Recognition
 * Object Detection
 * Text to Speech
