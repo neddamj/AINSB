@@ -3,16 +3,13 @@ The aim of this project is to develop a prototype device that assists the blind/
 
 ## Project Overview
 According to the project requirements, the primary objectives of the project are to:
-> Identify various objects in the path of the user
-
-> Estimate the distance of those objects from the user
-
-> Provide auditory and/or tactile feedback to direct the user
+* Identify various objects in the path of the user
+* Estimate the distance of those objects from the user
+* Provide auditory and/or tactile feedback to direct the user
 
 The stretch objectives include:
-> Apply face recognition to identify persons familiar to the user of the device 
-
-> Accept voice commands from the user 
+* Apply face recognition to identify persons familiar to the user of the device 
+* Accept voice commands from the user 
 
 
 
