@@ -27,5 +27,7 @@ Each of the previously mentioned sections contain the code and files that were u
 As before, 2 approaches were taken here. In the first approach, I developed a custom face recognition pipeline using the OpenCV dnn module and scikit-learn and in the second approach I used the face_recognition library that is available in python.
 
 ## Text to Speech
-Here, I made use of Google's Text to Speech API and the playsound library. The API allowed me to convert text into .mp3 files and the playsound library allowed me to playback these .mp3 files as audio.
+Here, I made use of Google's Text to Speech(TTS) API and the playsound library. The TTS API allowed me to convert text into .mp3 files and the playsound library allowed me to playback these .mp3 files as audio.
 
+##Tactile Feedback
+Here, the atmega328p should receive data from the raspberry pi using the UART protocol and it should trigger motors based on the data it recieves from the pi.
