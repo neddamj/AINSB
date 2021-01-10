@@ -7,9 +7,18 @@ According to the project requirements, the primary objectives of the project are
 * Estimate the distance of those objects from the user
 * Provide auditory and/or tactile feedback to direct the user
 
-The stretch objectives include:
+The secondary/stretch objectives include:
 * Apply face recognition to identify persons familiar to the user of the device 
 * Accept voice commands from the user 
+
+As such, the software implementation of the project up to this point has been divided into the following section:
+* Depth Estimation
+* Face Recognition
+* Object Detection
+* Text to Speech
+* Tactile Feedback
+
+Each of the previously mentioned sections contain the code and files that were used during the R&D process for each of those tasks.
 
 
 
