@@ -13,6 +13,7 @@ The secondary/stretch objectives include:
 
 As such, the software implementation of the project up to this point has been divided into the following section:
 * Face Recognition
+* Depth Estimation
 * Object Detection
 * Text to Speech
 * Tactile Feedback
@@ -21,6 +22,9 @@ Each of the previously mentioned sections contain the code and files that were u
 
 ## Object Detection
 2 approaches were taken to complete this task. First, a YOLOv3 object detector was tested using the Deep Neural Network(dnn) module in OpenCV and then various models were tested through the Tensorflow 2 Object Detection API(OD API). From the OD API, the models that were settled upon were the SSD MobileNet V2 and the EFficientDet D0.
+
+## Depth Estimation
+To be completed soon
 
 ## Face Recognition
 As before, 2 approaches were taken here. In the first approach, I developed a custom face recognition pipeline using the OpenCV dnn module and scikit-learn and in the second approach I used the face_recognition library that is available in python.
