@@ -8,3 +8,4 @@ pillow==8.0.1
 playsound==1.2.2
 imutils==0.5.3
 scikit-learn==0.24.0
+pyrealsense2==2.41.0.2666
