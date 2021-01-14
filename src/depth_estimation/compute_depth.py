@@ -1,4 +1,5 @@
 '''
+    Author: Jordan Madden
     Usage: python compute_depth.py
 '''
 
@@ -11,7 +12,8 @@ def filter_distance(depth_frame, x, y):
     distances = []
     positive = np.random.randint(low=30, high=100)
 
-    for i in range(10):
+    i = 0
+    while(i < 10):
         # Extract the depth value from the camera
         dist = int(depth_frame.get_distance(x, y) * 100)
         
@@ -24,10 +26,11 @@ def filter_distance(depth_frame, x, y):
 
         # Add the distances to the list
         distances.append(dist)
+        i += 1
 
     # Convert the list to a numpy array and return it
     distances = np.asarray(distances)
-    return int(distances.mean())
+    return int(distances.mean()) 
 
 # Declare all relevant constants
 SCALE_H = 1.0

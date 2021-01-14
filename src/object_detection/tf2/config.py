@@ -1,7 +1,7 @@
 '''
-Title: config.py
-Author: Jordan Madden
-Usage: python config.py
+    Title: config.py
+    Author: Jordan Madden
+    Usage: python config.py
 '''
 
 import os
@@ -26,7 +26,7 @@ PATH_TO_MODEL_TAR = os.path.join(MODELS_DIR, MODEL_TAR_FILENAME)
 PATH_TO_CKPT = os.path.join(MODELS_DIR, os.path.join(MODEL_NAME, 'checkpoint/'))
 PATH_TO_CFG = os.path.join(MODELS_DIR, os.path.join(MODEL_NAME, 'pipeline.config'))
 if not os.path.exists(PATH_TO_CKPT):
-    print('Downloading model. This may take a while... ')
+    print('Downloading model. This may take a while... ', end='')
     urllib.request.urlretrieve(MODEL_DOWNLOAD_LINK, PATH_TO_MODEL_TAR)
     tar_file = tarfile.open(PATH_TO_MODEL_TAR)
     tar_file.extractall(MODELS_DIR)
