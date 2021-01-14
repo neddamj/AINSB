@@ -24,7 +24,7 @@ Each of the previously mentioned sections contain the code and files that were u
 2 approaches were taken to complete this task. First, a YOLOv3 object detector was tested using the Deep Neural Network(dnn) module in OpenCV and then various models were tested through the Tensorflow 2 Object Detection API(OD API). From the OD API, the models that were settled upon were the SSD MobileNet V2 and the EFficientDet D0.
 
 ## Depth Estimation
-To be completed soon
+Initially, an attempt was made to compute monocular depth using deep learning however, this method was not accuracte enough for use. Thus, the Intel Realsense D415 (camera that can generate a depth map) was used.
 
 ## Face Recognition
 As before, 2 approaches were taken here. In the first approach, I developed a custom face recognition pipeline using the OpenCV dnn module and scikit-learn and in the second approach I used the face_recognition library that is available in python.
