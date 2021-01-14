@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 
 def filter_distance(depth_frame, x, y):
-    #List to store the consecutive distance values
+    #List to store the consecutive distance values and randomly initialized variable
     distances = []
     positive = np.random.randint(low=30, high=100)
 
