@@ -66,10 +66,10 @@ try:
         # Break from loop if the "Q" key is pressed
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
+            print("[INFO] ending video stream...")  
             break
 
 finally:
 
     # Stop streaming
-    print("[INFO] ending video stream...")
     pipeline.stop()
