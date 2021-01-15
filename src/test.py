@@ -91,8 +91,8 @@ if __name__ == "__main__":
     PATH_TO_CFG = path_to_cfg(args["model"])
 
     # Declare the relevant constants for the use of the realsense camera
-    SCALE_H = 1.0
-    SCALE_W = 1.0
+    SCALE_H = 0.5
+    SCALE_W = 0.5
     
     # Build the object detector, restore its weights from the checkpoint file
     # and load the label map
@@ -115,26 +115,39 @@ if __name__ == "__main__":
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-    # Start video stream
-    cap = cv2.VideoCapture(0)
-    print("[INFO] Starting video stream...")
+    # Start streaming
+    pipeline.start(config)
+    print("[INFO] starting video stream...")
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-            
-        frame2 = frame
-        frame = np.expand_dims(frame, axis=0)
+        # Wait for a coherent pair of frames: depth and color
+        frames = pipeline.wait_for_frames()
+        depth_frame = frames.get_depth_frame()
+        color_frame = frames.get_color_frame()
+        if not depth_frame or not color_frame:
+            continue   
 
-        input_tensor = tf.convert_to_tensor(frame, dtype=tf.float32)
+        # Extract the dimensions of the depth frame
+        (H, W) = depth_frame.get_height(), depth_frame.get_width()
+
+        # Convert images to numpy arrays
+        depth_image = np.asanyarray(depth_frame.get_data())
+        color_image = np.asanyarray(color_frame.get_data())
+
+        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+        # and extract the image dimensions
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+            
+        frame = cv2.resize(color_image, (int(SCALE_W*W), int(SCALE_H*H)))
+        color_image = np.expand_dims(color_image, axis=0)
+        input_tensor = tf.convert_to_tensor(color_image, dtype=tf.float32)
         (detections, predictions_dict, shapes) = detect(input_tensor)
 
         label_id_offset = 1
-        frame2 = frame2.copy()
+        frame = frame.copy()
 
         viz_utils.visualize_boxes_and_labels_on_image_array(
-            frame2,
+            frame,
             detections['detection_boxes'][0].numpy(), 
             (detections['detection_classes'][0].numpy() + label_id_offset).astype(int),
             detections['detection_scores'][0].numpy(),
@@ -144,14 +157,20 @@ if __name__ == "__main__":
             min_score_thresh=.50,
             agnostic_mode=False)
 
-        cv2.imshow('Webcam', frame2)    
+        # Convert the image back to its original size
+        frame = cv2.resize(frame, (W, H))
 
+        # Stack both images horizontally and display them
+        images = np.hstack((frame, depth_colormap))
+        cv2.imshow('RealSense', images)
+
+        # End the video stream is the letter "Q" is pressed
         key = cv2.waitKey(25) & 0xFF
         if key == ord('q'):
             print("[INFO] Ending video stream...")
             break
 
-    cap.release()
-    cv2.destroyAllWindows()
+    # Stop streaming
+    pipeline.stop()
 
 
