@@ -138,6 +138,7 @@ if __name__ == "__main__":
         # and extract the image dimensions
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
             
+        # Downsize frame before feeding it into the object detector
         frame = cv2.resize(color_image, (int(SCALE_W*W), int(SCALE_H*H)))
         color_image = np.expand_dims(color_image, axis=0)
         input_tensor = tf.convert_to_tensor(color_image, dtype=tf.float32)
