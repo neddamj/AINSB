@@ -72,6 +72,32 @@ def filter_distance(depth_frame, x, y):
     distances = np.asarray(distances)
     return int(distances.mean()) 
 
+def get_mid_coordinates(detections, scores, H, W, confidence=0.5):
+    # Initialize list to store midpoints of each bounding box
+    midPoints = []
+
+    for detection, score in zip(detections, scores):
+        # Only move forward if score is above the threshold
+        if score > confidence:
+            # Extract the coordinates of the detections and normalize each detection
+            y1, x1, y2, x2 = detection
+            y1 = int(H*y1)
+            x1 = int(W*x1)
+            y2 = int(H*y2)
+            x2 = int(W*x2)
+
+            #Display the coordinates and scores of each detection
+            print(f"X1: {x1} Y1: {y1} X2: {x2} Y2: {y2}")
+            print("Score: {}%".format(score*100))
+
+            # Calculate the midpoint of each box
+            midX = (x1+x2)/2
+            midY = (y1+y2)/2
+
+            # Add the midpoints to the midpoints list
+            midPoints.append([int(midX), int(midY)])
+
+    return midPoints
 
 if __name__ == "__main__":
     # Construct and parse the command line arguments
