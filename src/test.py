@@ -21,6 +21,15 @@ from object_detection.utils import visualization_utils as viz_utils
 # Suppress TensorFlow logging (2)
 tf.get_logger().setLevel('ERROR')
 
+def model_name(model):
+    # Return the path to the model that was specified through the command
+    # line arguement
+    if model == 'ssdmobilenet_v2':
+        return 'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8'
+    elif model == 'efficientdet_d0':
+        return "efficientdet_d0_coco17_tpu-32"
+
+
 def path_to_ckpt(model):
     # Return the path to the model that was specified through the command
     # line arguement
@@ -110,7 +119,7 @@ if __name__ == "__main__":
     OD_BASE_PATH = 'object_detection/tf2'
     DATA_DIR = os.path.join(OD_BASE_PATH, 'data')
     MODELS_DIR = os.path.join(DATA_DIR, 'models')
-    MODEL_NAME = 'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8'
+    MODEL_NAME = model_name(args["model"])
     LABEL_FILENAME = 'mscoco_label_map.pbtxt'
     PATH_TO_LABELS = os.path.join(MODELS_DIR, os.path.join(MODEL_NAME, LABEL_FILENAME))
     PATH_TO_CKPT = path_to_ckpt(args["model"])
