@@ -22,13 +22,12 @@ from object_detection.utils import visualization_utils as viz_utils
 tf.get_logger().setLevel('ERROR')
 
 def model_name(model):
-    # Return the path to the model that was specified through the command
+    # Return the name of the model that was specified through the command
     # line arguement
     if model == 'ssdmobilenet_v2':
         return 'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8'
     elif model == 'efficientdet_d0':
         return "efficientdet_d0_coco17_tpu-32"
-
 
 def path_to_ckpt(model):
     # Return the path to the model that was specified through the command
@@ -154,58 +153,80 @@ if __name__ == "__main__":
     pipeline.start(config)
     print("[INFO] starting video stream...")
 
-    while True:
-        # Wait for a coherent pair of frames: depth and color
-        frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
-        if not depth_frame or not color_frame:
-            continue   
+    try:
+        while True:
+            # Wait for a coherent pair of frames: depth and color
+            frames = pipeline.wait_for_frames()
+            depth_frame = frames.get_depth_frame()
+            color_frame = frames.get_color_frame()
+            if not depth_frame or not color_frame:
+                continue   
 
-        # Extract the dimensions of the depth frame
-        (H, W) = depth_frame.get_height(), depth_frame.get_width()
+            # Extract the dimensions of the depth frame
+            (H, W) = depth_frame.get_height(), depth_frame.get_width()
 
-        # Convert images to numpy arrays
-        depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
+            # Convert images to numpy arrays
+            depth_image = np.asanyarray(depth_frame.get_data())
+            color_image = np.asanyarray(color_frame.get_data())
 
-        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-        # and extract the image dimensions
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-            
-        # Downsize frame before feeding it into the object detector
-        frame = color_image 
-        color_image = np.expand_dims(color_image, axis=0)
-        input_tensor = tf.convert_to_tensor(color_image, dtype=tf.float32)
-        (detections, predictions_dict, shapes) = detect(input_tensor)
+            # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+            # and extract the image dimensions
+            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+                
+            # Downsize frame before feeding it into the object detector
+            frame = color_image 
+            color_image = np.expand_dims(color_image, axis=0)
+            input_tensor = tf.convert_to_tensor(color_image, dtype=tf.float32)
+            (detections, predictions_dict, shapes) = detect(input_tensor)
 
-        label_id_offset = 1
-        frame = frame.copy()
+            label_id_offset = 1
+            frame = frame.copy()
 
-        viz_utils.visualize_boxes_and_labels_on_image_array(
-            frame,
-            detections['detection_boxes'][0].numpy(), 
-            (detections['detection_classes'][0].numpy() + label_id_offset).astype(int),
-            detections['detection_scores'][0].numpy(),
-            category_index,
-            use_normalized_coordinates=True,
-            max_boxes_to_draw=200,
-            min_score_thresh=.50,
-            agnostic_mode=False)
+            viz_utils.visualize_boxes_and_labels_on_image_array(
+                frame,
+                detections['detection_boxes'][0].numpy(), 
+                (detections['detection_classes'][0].numpy() + label_id_offset).astype(int),
+                detections['detection_scores'][0].numpy(),
+                category_index,
+                use_normalized_coordinates=True,
+                max_boxes_to_draw=200,
+                min_score_thresh=.50,
+                agnostic_mode=False)
 
-        # Stack both images horizontally and display them
-        images = np.hstack((frame, depth_colormap))
-        cv2.namedWindow('RealSense')
-        cv2.imshow('RealSense', images)
+            # Display the number of detections and their coordinates
+            DETECTIONS = detections['detection_boxes'][0].numpy().tolist()
+            SCORES = detections['detection_scores'][0].numpy().tolist()
+            midPoints = get_mid_coordinates(DETECTIONS, SCORES, H, W)
 
-        # End the video stream is the letter "Q" is pressed
-        key = cv2.waitKey(25) & 0xFF
-        if key == ord('q'):
-            print("[INFO] Ending video stream...")
-            break
+            for midPoint in midPoints:
+                # Extract the mid-point dimensions
+                midX, midY = midPoint
 
-    # Stop streaming
-    pipeline.stop()
-    cv2.destroyAllWindows()
+                # Draw a circle at the midpoint for visual validation
+                cv2.circle(frame, (midX, midY), radius=10, 
+                    color=(0,0,255), thickness=2)  
+
+                # Find and display the distance of each object from the camera
+                dist = filter_distance(depth_frame, midX, midY)
+                text = "Distance: {}cm".format(dist)
+                cv2.putText(frame, text, (midX, midY-20), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1.0, (0, 0, 255), thickness=2)
+
+            # Stack both images horizontally and display them
+            images = np.hstack((frame, depth_colormap))
+            cv2.namedWindow('RealSense')
+            cv2.imshow('RealSense', images)
+
+            # End the video stream is the letter "Q" is pressed
+            key = cv2.waitKey(25) & 0xFF
+            if key == ord('q'):
+                print("[INFO] Ending video stream...")
+                break
+
+        # Stop streaming
+        pipeline.stop()
+        cv2.destroyAllWindows()
+    except Exception as e:
+        print("Problem: {}".format(e))
 
 

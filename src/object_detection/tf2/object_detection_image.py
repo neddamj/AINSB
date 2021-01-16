@@ -61,7 +61,7 @@ def get_mid_coordinates(detections, scores, H, W, confidence=0.5):
 
     return midPoints
  
-#Load label map
+# Load label map
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
 # Reading the image
@@ -94,8 +94,6 @@ viz_utils.visualize_boxes_and_labels_on_image_array(
 # Display the number of detections and their coordinates
 DETECTIONS = detections['detection_boxes'][0].numpy().tolist()
 SCORES = detections['detection_scores'][0].numpy().tolist()
-'''print(DETECTIONS[0][0])
-print(SCORES[0])'''
 midPoints = get_mid_coordinates(DETECTIONS, SCORES, H, W)
 
 for midPoint in midPoints:
@@ -103,10 +101,8 @@ for midPoint in midPoints:
     midX, midY = midPoint
 
     # Draw a circle at the midpoint for visual validation
-    cv2.circle(frame2, (midX, midY), radius=10, color=(0,0,255), thickness=2)
-    
-    # Display the midpoint
-    print(f"Mid-X: {midX} Mid-Y: {midY}")      
+    cv2.circle(frame2, (midX, midY), radius=10, 
+        color=(0,0,255), thickness=2)   
 
 # Show image
 cv2.imshow('Webcam', frame2)    
