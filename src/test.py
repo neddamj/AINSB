@@ -139,7 +139,7 @@ if __name__ == "__main__":
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
             
         # Downsize frame before feeding it into the object detector
-        frame = color_image #cv2.resize(color_image, (int(SCALE_W*W), int(SCALE_H*H)))
+        frame = color_image 
         color_image = np.expand_dims(color_image, axis=0)
         input_tensor = tf.convert_to_tensor(color_image, dtype=tf.float32)
         (detections, predictions_dict, shapes) = detect(input_tensor)
@@ -157,9 +157,6 @@ if __name__ == "__main__":
             max_boxes_to_draw=200,
             min_score_thresh=.50,
             agnostic_mode=False)
-
-        '''# Convert the image back to its original size
-        frame = cv2.resize(frame, (W, H))'''
 
         # Stack both images horizontally and display them
         images = np.hstack((frame, depth_colormap))
