@@ -226,6 +226,7 @@ if __name__ == "__main__":
         # Stop streaming
         pipeline.stop()
         cv2.destroyAllWindows()
+        
     except Exception as e:
         print("Problem: {}".format(e))
 
