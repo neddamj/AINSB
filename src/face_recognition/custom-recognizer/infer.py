@@ -17,10 +17,7 @@ if __name__ == "__main__":
         
     # Create the face recognition object
     rec = FaceRecognition()
-
-    # Train the face recognition model
-    #rec.train_recognizer()
-   
+    
     # Load the face detector and the embeddings model from disk
     detector = rec.load_detector()
     embedder = rec.load_embedder()
