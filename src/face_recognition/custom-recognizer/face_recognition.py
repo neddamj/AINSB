@@ -4,20 +4,6 @@
     Purpose: This module aims to compile the functionalities necessary for face recognition
              into an easy to use class and provide sample code that shows how to use the 
              module.
-    Project Structure: To use this module, the following folders should be present in your working directory:
-                        -dataset
-                        -face_detection_model
-                        -images
-                        The "dataset" folder should contain the folders with the images of the people that you want 
-                        the system to recognize. The folder containing the images of a person should be titled as 
-                        the name of the person you want the system to recognize. There should be also be a folder 
-                        inside of "dataset" called Unknown which contains images of arbitrary faces.
-
-                        The "face_detection_model" folder should contain the .prototxt file and the .caffemodel file
-                        of the pre-trained Caffe face detector.
-
-                        The "images" folder should contain images with the faces of people that you wish to test the 
-                        system on.
 '''
 
 from sklearn.preprocessing import LabelEncoder
@@ -136,36 +122,6 @@ class FaceRecognition:
 
         return data
 
-    def load_labels_and_recognizer(self, recognizer, le):
-        '''
-            Inputs: The face recognition SVM model, the label encoder
-            Purpose: Load the face recognition SVM and the label encoder from the 
-                     pickle files they were saved in on the disk
-            Returns: The recognition SVM and the label encoder
-        '''        
-        # load the actual face recognition model along with the label encoder
-        recognizer = pickle.loads(open(recognizer, "rb").read())
-        le = pickle.loads(open(le, "rb").read())
-
-        return recognizer, le
-
-    def save_models(self, recognizer, le):
-        '''
-            Inputs: The image that the model is to be run on, the pre-trained 
-                    Caffe model.
-            Purpose: Load the pre-trained FaceNet face embedding model for use.
-            Returns: The detections of each face in the image
-        '''            
-        # write the actual face recognition model to disk
-        f = open(RECOGNIZER, "wb")
-        f.write(pickle.dumps(recognizer))
-        f.close()
-
-        # write the label encoder to disk
-        f = open(LE, "wb")
-        f.write(pickle.dumps(le))
-        f.close()
-
     def get_bb_coordinates(self, detections, h, w, i):
         '''
             Inputs: The face detections from the pre-trained Caffe model, the height 
@@ -236,20 +192,14 @@ class FaceRecognition:
                     knownEmbeddings.append(vec.flatten())
                     num_faces += 1
 
-        # Save the embeddings and their corresponding names to memory
-        self.save_embeddings(num_faces, knownEmbeddings, knownNames)
-
-    def train_classifier(self):
+    def train_classifier(self, data):
         '''
             Inputs: Nothing
             Purpose: Train the SVM that will be used to classify the extracted embeddings 
                      of each face
             Returns: Nothing
-        '''        
-        # Load the facial embeddings
-        data = self.load_embeddings()
-
-        # encode the labels
+        '''     
+        # encode the labels 
         print("[INFO] encoding labels...", end="")
         le = LabelEncoder()
         labels = le.fit_transform(data["names"])
@@ -261,10 +211,9 @@ class FaceRecognition:
         recognizer.fit(data["embeddings"], labels)
         print("DONE")
 
-        # write the actual face recognition model to disk
-        self.save_models(recognizer, le)
+        return (recognizer, le)
         
-    def classify_face(self, recognizer, vec):
+    def classify_face(self, recognizer, vec, le):
         '''
             Inputs: The SVM classification model that will be used to classify the 
                     face, the extracted embeddings of a face
@@ -310,7 +259,8 @@ if __name__ == "__main__":
     embedder = rec.load_embedder()
 
     # Load the actual face recognition model and the label encoder
-    recognizer, le = rec.load_labels_and_recognizer(RECOGNIZER, LE)
+    recognizer = pickle.loads(open(RECOGNIZER, "rb").read())
+    le = pickle.loads(open(LE, "rb").read())
 
     # load and resize the image, then get the new image dimensions
     image = cv2.imread(IMAGE)
@@ -340,7 +290,7 @@ if __name__ == "__main__":
             vec = rec.get_embeddings(face, embedder)
 
             # Classify the face of the person
-            name, prob = rec.classify_face(recognizer, vec)
+            name, prob = rec.classify_face(recognizer, vec, le)
 
             # draw the bounding box of the face along with the associated
             # probability
