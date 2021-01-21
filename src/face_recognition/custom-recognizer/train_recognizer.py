@@ -13,7 +13,7 @@ import pickle
 import cv2
 import os
 
-# Declare relevant constants
+# Declare relevant constants(filepaths etc)
 DATASET = "dataset"
 DETECTOR = "face_detection_model"
 EMBEDDER = "openface_nn4.small2.v1.t7"
