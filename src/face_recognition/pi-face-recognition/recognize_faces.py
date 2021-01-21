@@ -20,7 +20,7 @@ print("[INFO] loading encodings + face detector...")
 data = pickle.loads(open(ENCODINGS, "rb").read())
 detector = cv2.CascadeClassifier(CASCADE)
 
-# initialize the video stream and allow the camera sensor to warm up
+# initialize the video stream and allow the camera to warm up
 print("[INFO] starting video stream...")
 cap = cv2.VideoCapture(0)
 time.sleep(1.0)

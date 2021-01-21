@@ -4,6 +4,7 @@
            python main.py --model="efficientdet_d0" 
 '''
 
+from playsound import playsound 
 import pyrealsense2 as rs
 import numpy as np
 import argparse
@@ -55,6 +56,10 @@ def detect(img):
 
     return (detections, prediction_dict, tf.reshape(shapes, [-1]))
 
+def playback(motion_command, cmds):
+    #Play audio recording of the given command
+    playsound(cmds[motion_command])
+
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
     distances = []
@@ -80,7 +85,8 @@ def filter_distance(depth_frame, x, y):
     distances = np.asarray(distances)
     return int(distances.mean()) 
 
-def get_mid_coordinates(detections, scores, H, W, confidence=0.5):
+def get_mid_coordinates_and_dist(depth_frame, detections, scores,
+                                H, W, confidence=0.5):
     # Initialize list to store midpoints of each bounding box
     midPoints = []
 
@@ -99,11 +105,14 @@ def get_mid_coordinates(detections, scores, H, W, confidence=0.5):
             print("Score: {}%".format(score*100))
 
             # Calculate the midpoint of each box
-            midX = (x1+x2)/2
-            midY = (y1+y2)/2
+            midX = int((x1+x2)/2)
+            midY = int((y1+y2)/2)
+            
+            # Calculate the distance of each point
+            dist = filter_distance(depth_frame, midX, midY)
 
             # Add the midpoints to the midpoints list
-            midPoints.append([int(midX), int(midY)])
+            midPoints.append([midX, midY, dist])
 
     return midPoints
 
@@ -114,8 +123,19 @@ if __name__ == "__main__":
         help="type pf model to use")
     args = vars(ap.parse_args())
 
+    # Declare the filepaths for text to speech
+    COMMAND_PATH = 'text_to_speech/commands'
+    FWD = 'forward_command.mp3'
+    LEFT = 'left_command.mp3'
+    RIGHT = 'right_command.mp3'
+    STOP = 'stop_command.mp3'
+    forwardPath = os.path.join(COMMAND_PATH, FWD)
+    leftPath = os.path.join(COMMAND_PATH, LEFT)
+    rightPath = os.path.join(COMMAND_PATH, RIGHT)
+    stopPath = os.path.join(COMMAND_PATH, STOP)
+
     # Declare the relevant constants for object detection
-    OD_BASE_PATH = 'object_detection/tf2'
+    OD_BASE_PATH = 'object_detection\\tf2'
     DATA_DIR = os.path.join(OD_BASE_PATH, 'data')
     MODELS_DIR = os.path.join(DATA_DIR, 'models')
     MODEL_NAME = model_name(args["model"])
@@ -130,12 +150,12 @@ if __name__ == "__main__":
     
     # Build the object detector, restore its weights from the checkpoint file
     # and load the label map
-    print("[INFO] Building model pipeline and detector...")
+    print("[INFO] building model pipeline and detector...")
     configs = config_util.get_configs_from_pipeline_file(PATH_TO_CFG)
     model_config = configs['model']
     detector = model_builder.build(model_config=model_config, is_training=False)
 
-    print("[INFO] Restoring model checkpoint...")
+    print("[INFO] restoring model checkpoint...")
     PATH_TO_RESTORE = os.path.join(PATH_TO_CKPT, 'ckpt-0')
     ckpt = tf.compat.v2.train.Checkpoint(model=detector)
     ckpt.restore(PATH_TO_RESTORE).expect_partial()
@@ -150,8 +170,8 @@ if __name__ == "__main__":
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
     # Start streaming
-    pipeline.start(config)
     print("[INFO] starting video stream...")
+    pipeline.start(config)
 
     try:
         while True:
@@ -196,18 +216,17 @@ if __name__ == "__main__":
             # Display the number of detections and their coordinates
             DETECTIONS = detections['detection_boxes'][0].numpy().tolist()
             SCORES = detections['detection_scores'][0].numpy().tolist()
-            midPoints = get_mid_coordinates(DETECTIONS, SCORES, H, W)
+            points = get_mid_coordinates_and_dist(depth_frame, DETECTIONS, SCORES, H, W)
 
-            for midPoint in midPoints:
+            for point in points:
                 # Extract the mid-point dimensions
-                midX, midY = midPoint
+                midX, midY, dist = point
 
                 # Draw a circle at the midpoint for visual validation
                 cv2.circle(frame, (midX, midY), radius=10, 
                     color=(0,0,255), thickness=2)  
 
-                # Find and display the distance of each object from the camera
-                dist = filter_distance(depth_frame, midX, midY)
+                # Display the distance of each object from the camera
                 text = "Distance: {}cm".format(dist)
                 cv2.putText(frame, text, (midX, midY-20), cv2.FONT_HERSHEY_SIMPLEX, 
                     1.0, (0, 0, 255), thickness=2)

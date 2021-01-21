@@ -1,5 +1,6 @@
-#USAGE: python object_detector.py
-
+'''
+    Usage: python object_detector.py
+'''
 import os 
 import cv2
 import numpy as np
