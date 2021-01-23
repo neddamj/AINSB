@@ -120,7 +120,7 @@ if __name__ == "__main__":
     # Construct and parse the command line arguments
     ap = argparse.ArgumentParser()
     ap.add_argument("-m", "--model", required=True,
-        help="type pf model to use")
+        help="type of model to use")
     args = vars(ap.parse_args())
 
     # Declare the filepaths for text to speech
@@ -147,6 +147,16 @@ if __name__ == "__main__":
     # Declare the relevant constants for the use of the realsense camera
     SCALE_H = 0.5
     SCALE_W = 0.5
+
+    # Check distance at these locations 
+    center = (W//2, H//2)
+    left = (W//2 + 100, H//2)
+    right = (W//2 - 100, H//2)
+    left2 = (W//2 + 200, H//2)
+    right2 = (W//2 - 200, H//2)
+    bottom = (W//2, H//2 + 150)
+    bottomR = (W//2 - 100, H//2 + 150)
+    bottomL = (W//2 + 100, H//2 + 150)
     
     # Build the object detector, restore its weights from the checkpoint file
     # and load the label map
@@ -231,10 +241,18 @@ if __name__ == "__main__":
                 cv2.putText(frame, text, (midX, midY-20), cv2.FONT_HERSHEY_SIMPLEX, 
                     1.0, (0, 0, 255), thickness=2)
 
+            # Draw vertical lines on the video frame
+            cv2.line(frame, (200, 0), (200, 480), (0, 0, 255), 2)
+            cv2.line(frame, (400, 0), (400, 480), (0, 0, 255), 2)
+
             # Stack both images horizontally and display them
-            images = np.hstack((frame, depth_colormap))
             cv2.namedWindow('RealSense')
-            cv2.imshow('RealSense', images)
+            cv2.imshow('RealSense', frame)
+
+            #Display the command to be given to the user
+            text = "Command: {}".format("Forward")
+            cv2.putText(frame, text, (5, 15), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
             # End the video stream is the letter "Q" is pressed
             key = cv2.waitKey(25) & 0xFF
