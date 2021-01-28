@@ -269,7 +269,7 @@ if __name__ == "__main__":
             cv2.putText(frame, text, (5, 15), 
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            # Stack both images horizontally and display them
+            # Display the video frame 
             cv2.namedWindow('RealSense')
             cv2.imshow('RealSense', frame)
 
