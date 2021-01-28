@@ -1,11 +1,22 @@
 '''
     Author: Jordan Madden
-    Usage: python compute_depth.py
+    Usage: python compute_depth.py --device="rpi"
+           python compute_depth.py --device="win" 
 '''
-
-import pyrealsense2 as rs
 import numpy as np
+import argparse
 import cv2
+
+# Construct and parse the command arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-d", "--device", required=True,
+                 help="Will the code be run on raspberry pi or windows machine?")
+args = vars(ap.parse_args())
+
+if args["device"] == "rpi":
+    import pyrealsense2.pyrealsense2 as rs
+elif args["device"] == "win":
+    import pyrealsense2 as rs
 
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
