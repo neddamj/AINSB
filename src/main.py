@@ -66,7 +66,7 @@ def filter_distance(depth_frame, x, y):
     positive = np.random.randint(low=30, high=100)
 
     i = 0
-    while(i < 10):
+    while(i < 75):
         # Extract the depth value from the camera
         dist = int(depth_frame.get_distance(x, y) * 100)
         
@@ -75,10 +75,10 @@ def filter_distance(depth_frame, x, y):
         if dist != 0:
             positive = dist
         elif dist == 0:
-            dist == positive
+            positive == positive
 
         # Add the distances to the list
-        distances.append(dist)
+        distances.append(positive)
         i += 1
 
     # Convert the list to a numpy array and return it
@@ -147,16 +147,6 @@ if __name__ == "__main__":
     # Declare the relevant constants for the use of the realsense camera
     SCALE_H = 0.5
     SCALE_W = 0.5
-
-    # Check distance at these locations 
-    center = (W//2, H//2)
-    left = (W//2 + 100, H//2)
-    right = (W//2 - 100, H//2)
-    left2 = (W//2 + 200, H//2)
-    right2 = (W//2 - 200, H//2)
-    bottom = (W//2, H//2 + 150)
-    bottomR = (W//2 - 100, H//2 + 150)
-    bottomL = (W//2 + 100, H//2 + 150)
     
     # Build the object detector, restore its weights from the checkpoint file
     # and load the label map

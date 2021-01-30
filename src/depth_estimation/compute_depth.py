@@ -24,7 +24,7 @@ def filter_distance(depth_frame, x, y):
     positive = np.random.randint(low=30, high=100)
 
     i = 0
-    while(i < 10):
+    while(i < 50):
         # Extract the depth value from the camera
         dist = int(depth_frame.get_distance(x, y) * 100)
         
@@ -33,10 +33,10 @@ def filter_distance(depth_frame, x, y):
         if dist != 0:
             positive = dist
         elif dist == 0:
-            dist == positive
+            positive = positive
 
         # Add the distances to the list
-        distances.append(dist)
+        distances.append(positive)
         i += 1
 
     # Convert the list to a numpy array and return it
@@ -51,8 +51,8 @@ SCALE_W = 1.0
 print("[INFO] building and configuring the video pipeline...")
 pipeline = rs.pipeline()
 config = rs.config()
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
 
 # Start streaming
 pipeline.start(config)
