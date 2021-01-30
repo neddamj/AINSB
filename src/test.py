@@ -66,7 +66,7 @@ def filter_distance(depth_frame, x, y):
     positive = np.random.randint(low=30, high=100)
 
     i = 0
-    while(i < 10):
+    while(i < 75):
         # Extract the depth value from the camera
         dist = int(depth_frame.get_distance(x, y) * 100)
         
@@ -75,10 +75,10 @@ def filter_distance(depth_frame, x, y):
         if dist != 0:
             positive = dist
         elif dist == 0:
-            dist == positive
+            positive == positive
 
         # Add the distances to the list
-        distances.append(dist)
+        distances.append(positive)
         i += 1
 
     # Convert the list to a numpy array and return it
