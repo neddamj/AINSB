@@ -26,27 +26,19 @@ ap.add_argument('--threshold', help='Minimum confidence threshold for displaying
                     default=0.5)
 args = vars(ap.parse_args())
 
-
-# PROVIDE PATH TO MODEL DIRECTORY
+# Declare relevant constants(filepaths etc)
 PATH_TO_MODEL_DIR = 'od_models/my_mobilenet_model'
-
-# PROVIDE PATH TO LABEL MAP
 PATH_TO_LABELS = 'models/research/object_detection/data/mscoco_label_map.pbtxt'
-
-# PROVIDE THE MINIMUM CONFIDENCE THRESHOLD
 MIN_CONF_THRESH = 0.5
-
 
 # Load the model and the label map
 PATH_TO_SAVED_MODEL = PATH_TO_MODEL_DIR + "/saved_model"
-print('Loading model...', end='')
+
+# Load the model from disk
+print('[INFO] loading model...')
 start_time = time.time()
-
 detect_fn = tf.saved_model.load(PATH_TO_SAVED_MODEL)
-
-end_time = time.time()
-elapsed_time = end_time - start_time
-print('Done! Took {} seconds'.format(elapsed_time))
+print('[INFO] model loaded, took {} seconds'.format(time.time() - start_time))
 
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS,
                                                                     use_display_name=True)
@@ -63,23 +55,21 @@ pipeline.start(config)
 print("[INFO] starting video stream...")
 
 while True:
-
+    # Get the video frames from the camera
     frames = pipeline.wait_for_frames()
     depth_frame = frames.get_depth_frame()
     color_frame = frames.get_color_frame()
     if not depth_frame or not color_frame:
         continue
             
-    # Convert images to numpy arrays
+    # Convert images to numpy arrays and get the frame dimensions
     depth_image = np.asanyarray(depth_frame.get_data())
     frame = np.asanyarray(color_frame.get_data())
     imH, imW = frame.shape[:2]
 
-    # The input needs to be a tensor, convert it using `tf.convert_to_tensor`.
+    # Convert np array to tensor and add new axis before passing image to detector
     input_tensor = tf.convert_to_tensor(frame)
-    # The model expects a batch of images, so add an axis with `tf.newaxis`.
     input_tensor = input_tensor[tf.newaxis, ...]
-
     # input_tensor = np.expand_dims(image_np, 0)
     detections = detect_fn(input_tensor)
 
@@ -128,8 +118,8 @@ while True:
     cv2.imshow('Object Detector', frame)
 
     if cv2.waitKey(1) == ord('q'):
+        print("[INFO] ending video stream...")
         break
 
 pipeline.stop()
 cv2.destroyAllWindows()
-print("Done")
