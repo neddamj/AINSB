@@ -2,6 +2,7 @@
     Author: Jordan Madden
     Usage: python rpi_test.py
 '''
+import pyrealsense2.pyrealsense2 as rs
 import numpy as np
 import argparse
 import pathlib
@@ -27,13 +28,13 @@ args = vars(ap.parse_args())
 
 
 # PROVIDE PATH TO MODEL DIRECTORY
-PATH_TO_MODEL_DIR = 'home/pi/od_models/my_mobilenet_model'
+PATH_TO_MODEL_DIR = 'od_models/my_mobilenet_model'
 
 # PROVIDE PATH TO LABEL MAP
-PATH_TO_LABELS = 'home/pi/Tensorflow/models/research/object_detection/data/mscoco_label_map.pbtxt'
+PATH_TO_LABELS = 'models/research/object_detection/data/mscoco_label_map.pbtxt'
 
 # PROVIDE THE MINIMUM CONFIDENCE THRESHOLD
-CONFIDENCE = 0.5
+MIN_CONF_THRESH = 0.5
 
 
 # Load the model and the label map
@@ -72,6 +73,7 @@ while True:
     # Convert images to numpy arrays
     depth_image = np.asanyarray(depth_frame.get_data())
     frame = np.asanyarray(color_frame.get_data())
+    imH, imW = frame.shape[:2]
 
     # The input needs to be a tensor, convert it using `tf.convert_to_tensor`.
     input_tensor = tf.convert_to_tensor(frame)
