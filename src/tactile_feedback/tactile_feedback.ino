@@ -8,16 +8,50 @@
  *               they should move in or whether they should move at all.
  */
 
-#define forward
-#define left
-#define right
-#define stopMoving
+#define F A1
+#define L A2
+#define R A3 
 
 void setup() {
+  // Set the baud rate of the microcontroller
   Serial.begin(9600);
+
+  // Set the mode of the I/O pins
+  pinMode(F, OUTPUT);
+  pinMode(L, OUTPUT);
+  pinMode(R, OUTPUT);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  if(Serial.read() == 1){
+    forward(); 
+  }
 
+  if(Serial.read() == 2){
+    left();
+  }
+
+  if(Serial.read() == 3){
+    right();
+  }
+
+  delay(1000);
+}
+
+void forward(){
+  digitalWrite(F, HIGH);
+}
+
+void left(){
+  digitalWrite(L, HIGH);
+}
+
+void right(){
+  digitalWrite(R, HIGH);
+}
+
+void stopMoving(){
+  digitalWrite(F, HIGH);
+  digitalWrite(L, HIGH);
+  digitalWrite(R, HIGH);
 }
