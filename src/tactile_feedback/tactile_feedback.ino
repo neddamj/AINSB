@@ -23,15 +23,16 @@ void setup() {
 }
 
 void loop() {
-  if(Serial.read() == 1){
+  // Recieve message from Raspberry Pi
+  recMessage = Serial.read();
+  
+  if(recMessage == 1){
     forward(); 
   }
-
-  if(Serial.read() == 2){
+  else if(recMessage == 2){
     left();
   }
-
-  if(Serial.read() == 3){
+  else if(recMessage == 3){
     right();
   }
 
