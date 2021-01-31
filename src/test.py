@@ -8,6 +8,7 @@ from playsound import playsound
 import pyrealsense2 as rs
 import numpy as np
 import argparse
+import time
 import cv2
 import os
 
@@ -108,9 +109,15 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
 
     return coords
 
-def command(dist, midX):
+def command(dist, left, right):
+    # Determine the midpoint of each detection and the distance between the object and 
+    # the left and right borders of the frame
+    midX = (left+right)//2
+    dist_left = left - 0
+    dist_right = 640 - right
+
     # Determine what action the user should take
-    if (dist <= 100) and ((midX>200) and (midX<400)):
+    if (dist <= 100 and (midX > 200 and midX < 400)):
         state = 0
     else:
         state = 1
@@ -192,6 +199,8 @@ if __name__ == "__main__":
     print("[INFO] starting video stream...")
     pipeline.start(config)
 
+    cmnd = "Forward"
+
     try:
         while True:
             # Wait for a coherent pair of frames: depth and color
@@ -258,7 +267,7 @@ if __name__ == "__main__":
                     0.5, (0, 0, 255), thickness=2)
 
                 # Determine what command to give to the user
-                cmnd = command(dist, midX)
+                cmnd = command(dist, x1, x2)
 
             # Draw vertical lines on the video frame
             cv2.line(frame, (200, 0), (200, 480), (0, 0, 255), 2)
