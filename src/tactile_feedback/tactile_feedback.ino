@@ -8,6 +8,8 @@
  *               they should move in or whether they should move at all.
  */
 
+#include <Arduino.h>
+
 #define F A1
 #define L A2
 #define R A3 
@@ -24,7 +26,7 @@ void setup() {
 
 void loop() {
   // Recieve message from Raspberry Pi
-  recMessage = Serial.read();
+  unsigned char recMessage = Serial.read();
   
   if(recMessage == 1){
     forward(); 

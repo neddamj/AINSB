@@ -241,7 +241,7 @@ if __name__ == "__main__":
                 min_score_thresh=.50,
                 agnostic_mode=False)
 
-            # Display the number of detections and their coordinates
+            # Convert the detections and their respective scores from numpy arrays to lists
             DETECTIONS = detections['detection_boxes'][0].numpy().tolist()
             SCORES = detections['detection_scores'][0].numpy().tolist()
             points = get_bb_coordinates(DETECTIONS, SCORES, H, W)

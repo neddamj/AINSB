@@ -4,6 +4,7 @@
 import os 
 import cv2
 import numpy as np
+from imutils.video import FPS
 from config import PATH_TO_LABELS, path_to_cfg, path_to_ckpt
 
 # Suppress TensorFlow logging
@@ -37,7 +38,10 @@ def detect(img):
     
 #Load label map
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+
+# Create the video capture object and start reading the FPS
 cap = cv2.VideoCapture(0)
+fps = FPS().start()
 print("[INFO] Starting video stream...")
 
 while True:
@@ -65,12 +69,18 @@ while True:
           min_score_thresh=.50,
           agnostic_mode=False)
 
-    cv2.imshow('Webcam', frame2)    
+    # Show the frame and update the FPA
+    cv2.imshow('Webcam', frame2)  
+    fps.update()  
 
     key = cv2.waitKey(25) & 0xFF
     if key == ord('q'):
         print("[INFO] Ending video stream...")
+        fps.stop()
         break
+
+print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
 
 cap.release()
 cv2.destroyAllWindows()

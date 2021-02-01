@@ -4,6 +4,7 @@
 '''
 
 import pyrealsense2.pyrealsense2 as rs
+from imutils.video import FPS
 import numpy as np
 import argparse
 import pathlib
@@ -124,8 +125,9 @@ if __name__ == "__main__":
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-    # Start streaming
+    # Start streaming and create the fps calculator
     pipeline.start(config)
+    fps = FPS().start()
     print("[INFO] starting video stream...")
 
     while True:
@@ -186,14 +188,20 @@ if __name__ == "__main__":
             cv2.putText(frame, text, (midX, midY-20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.5, (0, 0, 255), thickness=2)
                         
-        
+        # Show the video frame and update the fps tracker
         cv2.imshow('Realsense', frame)
+        fps.update()
 
         if cv2.waitKey(1) == ord('q'):
             print("[INFO] ending video stream...")
+            fps.stop()
             break
-
-    # Stop video streaming and destroy thr frame
+    
+    # Show the elapsed time and the respective fps
+    print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
+    
+    # Stop video streaming and destroy the frame
     pipeline.stop()
     cv2.destroyAllWindows()
 
