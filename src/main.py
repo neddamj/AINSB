@@ -8,6 +8,7 @@ from playsound import playsound
 import pyrealsense2 as rs
 import numpy as np
 import argparse
+import time
 import cv2
 import os
 
@@ -56,9 +57,9 @@ def detect(img):
 
     return (detections, prediction_dict, tf.reshape(shapes, [-1]))
 
-def playback(motion_command, cmds):
+def playback(commnds, motion_command):
     #Play audio recording of the given command
-    playsound(cmds[motion_command])
+    playsound(commands[motion_command])
 
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
@@ -85,10 +86,9 @@ def filter_distance(depth_frame, x, y):
     distances = np.asarray(distances)
     return int(distances.mean()) 
 
-def get_mid_coordinates_and_dist(depth_frame, detections, scores,
-                                H, W, confidence=0.5):
+def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
     # Initialize list to store midpoints of each bounding box
-    midPoints = []
+    coords = []
 
     for detection, score in zip(detections, scores):
         # Only move forward if score is above the threshold
@@ -104,17 +104,36 @@ def get_mid_coordinates_and_dist(depth_frame, detections, scores,
             print(f"X1: {x1} Y1: {y1} X2: {x2} Y2: {y2}")
             print("Score: {}%".format(score*100))
 
-            # Calculate the midpoint of each box
-            midX = int((x1+x2)/2)
-            midY = int((y1+y2)/2)
-            
-            # Calculate the distance of each point
-            dist = filter_distance(depth_frame, midX, midY)
-
             # Add the midpoints to the midpoints list
-            midPoints.append([midX, midY, dist])
+            coords.append([x1, y1, x2, y2])
 
-    return midPoints
+    return coords
+
+def command(dist, left, right):
+    # Determine the midpoint of each detection and the distance between the object and 
+    # the left and right borders of the frame
+    midX = (left+right)//2
+    dist_left = left - 0
+    dist_right = 640 - right
+
+    # Determine what action the user should take
+    if (dist <= 100 and (midX > 200 and midX < 400)):
+        state = 0
+    else:
+        state = 1
+
+    # Give the feedback to the user based on the determined action 
+    cmd = None
+    if state == 1:
+        cmd = "Forward"
+    elif state == 2:
+        cmd = "Left"
+    elif state == 3:
+        cmd = "Right"
+    elif state == 0:
+        cmd = "Stop"
+
+    return cmd
 
 if __name__ == "__main__":
     # Construct and parse the command line arguments
@@ -123,7 +142,8 @@ if __name__ == "__main__":
         help="type of model to use")
     args = vars(ap.parse_args())
 
-    # Declare the filepaths for text to speech
+    # Declare the filepaths and data structures for text 
+    # to speech
     COMMAND_PATH = 'text_to_speech/commands'
     FWD = 'forward_command.mp3'
     LEFT = 'left_command.mp3'
@@ -133,6 +153,12 @@ if __name__ == "__main__":
     leftPath = os.path.join(COMMAND_PATH, LEFT)
     rightPath = os.path.join(COMMAND_PATH, RIGHT)
     stopPath = os.path.join(COMMAND_PATH, STOP)
+
+    commands = {}
+    commands["Forward"] = forwardPath
+    commands["Left"] = leftPath
+    commands["Right"] = rightPath
+    commands["Stop"] = stopPath
 
     # Declare the relevant constants for object detection
     OD_BASE_PATH = 'object_detection\\tf2'
@@ -172,6 +198,8 @@ if __name__ == "__main__":
     # Start streaming
     print("[INFO] starting video stream...")
     pipeline.start(config)
+
+    cmnd = "Forward"
 
     try:
         while True:
@@ -213,36 +241,46 @@ if __name__ == "__main__":
                 min_score_thresh=.50,
                 agnostic_mode=False)
 
-            # Display the number of detections and their coordinates
+            # Convert the detections and their respective scores from numpy arrays to lists
             DETECTIONS = detections['detection_boxes'][0].numpy().tolist()
             SCORES = detections['detection_scores'][0].numpy().tolist()
-            points = get_mid_coordinates_and_dist(depth_frame, DETECTIONS, SCORES, H, W)
+            points = get_bb_coordinates(DETECTIONS, SCORES, H, W)
 
             for point in points:
-                # Extract the mid-point dimensions
-                midX, midY, dist = point
+                # Extract the bounding box coordinates 
+                x1, y1, x2, y2 = point
+                
+                # Find the mid-point coordinates
+                midX = (x1+x2)//2
+                midY = (y1+y2)//2
+
+                # Find the distance of each point
+                dist = filter_distance(depth_frame, midX, midY)
 
                 # Draw a circle at the midpoint for visual validation
-                cv2.circle(frame, (midX, midY), radius=10, 
+                cv2.circle(frame, (midX, midY), radius=5, 
                     color=(0,0,255), thickness=2)  
 
                 # Display the distance of each object from the camera
                 text = "Distance: {}cm".format(dist)
                 cv2.putText(frame, text, (midX, midY-20), cv2.FONT_HERSHEY_SIMPLEX, 
-                    1.0, (0, 0, 255), thickness=2)
+                    0.5, (0, 0, 255), thickness=2)
+
+                # Determine what command to give to the user
+                cmnd = command(dist, x1, x2)
 
             # Draw vertical lines on the video frame
             cv2.line(frame, (200, 0), (200, 480), (0, 0, 255), 2)
             cv2.line(frame, (400, 0), (400, 480), (0, 0, 255), 2)
 
-            # Stack both images horizontally and display them
+            #Display the command to be given to the user
+            text = "Command: {}".format(cmnd)
+            cv2.putText(frame, text, (5, 15), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+            # Display the video frame 
             cv2.namedWindow('RealSense')
             cv2.imshow('RealSense', frame)
-
-            #Display the command to be given to the user
-            text = "Command: {}".format("Forward")
-            cv2.putText(frame, text, (5, 15), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
             # End the video stream is the letter "Q" is pressed
             key = cv2.waitKey(25) & 0xFF
@@ -256,5 +294,6 @@ if __name__ == "__main__":
         
     except Exception as e:
         print("Problem: {}".format(e))
+
 
 
