@@ -20,7 +20,7 @@ if args["device"] == "rpi":
 elif args["device"] == "win":
     import pyrealsense2 as rs
 
-class RealVideoStream:
+class RealSenseVideo:
     def __init__(self, width=640, height=480):
         # Frame dimensions of camera
         self.width = width
@@ -101,7 +101,7 @@ SCALE_W = 1.0
 
 # Configure depth and color streams
 #print("[INFO] building and configuring the video pipeline...")
-vs = RealVideoStream().start()
+vs = RealSenseVideo.start()
 fps = FPS().start()
 print("Starting stream...")
 

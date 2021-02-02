@@ -28,32 +28,25 @@ ap.add_argument('--threshold', help='Minimum confidence threshold for displaying
                     default=0.5)
 args = vars(ap.parse_args())
 
-def visualize_boxes_and_labels(boxes, scores, classes, confidence, H, W):
-    count = 0
-    
-    for i in range(len(scores)):
-        if ((scores[i] > confidence) and (scores[i] <= 1.0)):
-            count += 1
-            
-            # Get bounding box coordinates 
-            ymin = int(max(1,(boxes[i][0] * H)))
-            xmin = int(max(1,(boxes[i][1] * W)))
-            ymax = int(min(H,(boxes[i][2] * H)))
-            xmax = int(min(W,(boxes[i][3] * W)))
-            
-            # Draw bounding box
-            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
-            
-            # Label bounding box
-            object_name = category_index[int(classes[i])]['name'] 
-            label = '%s: %d%%' % (object_name, int(scores[i]*100)) 
-            labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) 
-            label_ymin = max(ymin, labelSize[1] + 10) 
-            cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
-            cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-    
-    cv2.putText (frame,'Objects Detected : ' + str(count),(10,25),cv2.FONT_HERSHEY_SIMPLEX,1,(70,235,52),2,cv2.LINE_AA)
-    
+def visualize_boxes_and_labels(frame, boxes, scores, classes, confidence, H, W):
+    # Get the bounding box coordinates
+    coordinates = get_bb_coordinates(boxes, scores, H, W)
+
+    for coordinate in coordinates:
+        # Get the bounding box coordinates
+        x1, y1, x2, y2 = coordinate
+
+        # Draw bounding box
+        cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
+
+        # Label the bounding box
+        object_name = category_index[int(classes[i])]['name']
+        label = "{}".format(object_name)
+        labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+        label_ymin = max(y1, labelSize[1] + 10)  
+        cv2.rectangle(frame, (x1, label_ymin-labelSize[1]-10), (x1+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED)
+        cv2.putText(frame, label, (x1, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
     distances = []
@@ -165,7 +158,7 @@ if __name__ == "__main__":
         boxes = detections['detection_boxes']
         classes = detections['detection_classes']
         
-        visualize_boxes_and_labels(boxes, scores, classes, CONFIDENCE, imH, imW)
+        visualize_boxes_and_labels(frame, boxes, scores, classes, CONFIDENCE, imH, imW)
         
         points = get_bb_coordinates(boxes, scores, imH, imW)
         for point in points:
