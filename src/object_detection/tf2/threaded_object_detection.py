@@ -45,7 +45,7 @@ vs = WebcamVideoStream().start()
 fps = FPS().start()
 print("[INFO] Starting video stream...")
 
-while True:
+while fps._numFrames<800:
     frame = vs.read()
         
     frame2 = frame
@@ -78,6 +78,7 @@ while True:
         fps.stop()
         break
 
+fps.stop()
 print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
 print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
 

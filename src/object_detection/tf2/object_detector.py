@@ -44,7 +44,7 @@ cap = cv2.VideoCapture(0)
 fps = FPS().start()
 print("[INFO] Starting video stream...")
 
-while True:
+while fps._numFrames<800:
     ret, frame = cap.read()
     if not ret:
         break
@@ -79,6 +79,7 @@ while True:
         fps.stop()
         break
 
+fps.stop()
 print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
 print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
 
