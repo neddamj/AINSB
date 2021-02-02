@@ -1,8 +1,10 @@
 '''
     Author: Jordan Madden
-    Usage: python compute_depth.py --device="rpi"
-           python compute_depth.py --device="win" 
+    Usage: python threading_depth.py --device="rpi"
+           python threading_depth.py --device="win" 
 '''
+from imutils.video import FPS
+from threading import Thread
 import numpy as np
 import argparse
 import cv2
@@ -17,6 +19,56 @@ if args["device"] == "rpi":
     import pyrealsense2.pyrealsense2 as rs
 elif args["device"] == "win":
     import pyrealsense2 as rs
+
+class RealVideoStream:
+    def __init__(self, width=640, height=480):
+        # Frame dimensions of camera
+        self.width = width
+        self.height = height
+
+        # Build and enable the depth and color frames
+        self.pipeline = rs.pipeline()
+        self.config = rs.config()
+        self.config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
+        self.config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
+
+        # Start streaming
+        self.pipeline.start(self.config)
+        
+        # Read the first frame from the stream
+        self.frame = self.pipeline.wait_for_frames()
+        self.depth_frame = self.frame.get_depth_frame()
+        self.color_frame = self.frame.get_color_frame()
+
+        # Variable to check if thread should be stopped
+        self.stopped = False
+
+    def start(self):
+        # Start the thread to read the frames from the video stream
+        Thread(target=self.update, args=()).start()
+        return self
+
+    def update(self):
+        while True:
+            # Stop streaming in indicator is set
+            if self.stopped:
+                return
+
+            # Otherwise read the next frame in the stream
+            self.frame = self.pipeline.wait_for_frames()
+            self.depth_frame = self.frame.get_depth_frame()
+            self.color_frame = self.frame.get_color_frame()
+            if not self.depth_frame or not self.color_frame:
+                return
+
+    def read(self):
+        # Return the most recent color and depth frame
+        return self.color_frame, self.depth_frame
+
+    def stop(self)        :
+        # Stop the video stream
+        self.stopped = True
+        self.pipeline.stop()
 
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
@@ -48,24 +100,14 @@ SCALE_H = 1.0
 SCALE_W = 1.0
 
 # Configure depth and color streams
-print("[INFO] building and configuring the video pipeline...")
-pipeline = rs.pipeline()
-config = rs.config()
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-
-# Start streaming
-pipeline.start(config)
-print("[INFO] starting video stream...")
+#print("[INFO] building and configuring the video pipeline...")
+vs = RealVideoStream().start()
+print("Starting stream...")
 
 try:
     while True:
         # Wait for a coherent pair of frames: depth and color
-        frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
-        if not depth_frame or not color_frame:
-            continue
+        color_frame, depth_frame = vs.read()
         
         # Extract the dimensions of the depth frame
         (H, W) = depth_frame.get_height(), depth_frame.get_width()
@@ -102,4 +144,5 @@ try:
 finally:
 
     # Stop streaming
-    pipeline.stop()
+    vs.stop()
+
