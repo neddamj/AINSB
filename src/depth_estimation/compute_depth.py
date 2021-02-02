@@ -3,6 +3,7 @@
     Usage: python compute_depth.py --device="rpi"
            python compute_depth.py --device="win" 
 '''
+from imutils.video import FPS
 import numpy as np
 import argparse
 import cv2
@@ -56,6 +57,7 @@ config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
 # Start streaming
 pipeline.start(config)
+fps = FPS().start()
 print("[INFO] starting video stream...")
 
 try:
@@ -93,13 +95,19 @@ try:
         cv2.namedWindow('RealSense')
         cv2.imshow('RealSense', images)
 
+        # Update the FPS counter
+        fps.update()
+
         # Break from loop if the "Q" key is pressed
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             print("[INFO] ending video stream...")  
+            fps.stop()
             break
 
 finally:
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
     # Stop streaming
     pipeline.stop()

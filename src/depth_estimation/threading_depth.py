@@ -102,6 +102,7 @@ SCALE_W = 1.0
 # Configure depth and color streams
 #print("[INFO] building and configuring the video pipeline...")
 vs = RealVideoStream().start()
+fps = FPS().start()
 print("Starting stream...")
 
 try:
@@ -135,14 +136,19 @@ try:
         cv2.namedWindow('RealSense')
         cv2.imshow('RealSense', images)
 
+        # Update the FPS counter
+        fps.update()
+
         # Break from loop if the "Q" key is pressed
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
+            fps.stop()
             print("[INFO] ending video stream...")  
             break
 
 finally:
-
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+    
     # Stop streaming
     vs.stop()
-
