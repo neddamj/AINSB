@@ -5,6 +5,7 @@
 
 import pyrealsense2.pyrealsense2 as rs
 from imutils.video import FPS
+from threading import Thread
 import numpy as np
 import argparse
 import pathlib
@@ -28,10 +29,61 @@ ap.add_argument('--threshold', help='Minimum confidence threshold for displaying
                     default=0.5)
 args = vars(ap.parse_args())
 
+class RealSenseVideo:
+    def __init__(self, width=640, height=480):
+        # Frame dimensions of camera
+        self.width = width
+        self.height = height
+
+        # Build and enable the depth and color frames
+        self.pipeline = rs.pipeline()
+        self.config = rs.config()
+        self.config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
+        self.config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
+
+        # Start streaming
+        self.pipeline.start(self.config)
+        
+        # Read the first frame from the stream
+        self.frame = self.pipeline.wait_for_frames()
+        self.depth_frame = self.frame.get_depth_frame()
+        self.color_frame = self.frame.get_color_frame()
+
+        # Variable to check if thread should be stopped
+        self.stopped = False
+
+    def start(self):
+        # Start the thread to read the frames from the video stream
+        Thread(target=self.update, args=()).start()
+        return self
+
+    def update(self):
+        while True:
+            # Stop streaming in indicator is set
+            if self.stopped:
+                return
+
+            # Otherwise read the next frame in the stream
+            self.frame = self.pipeline.wait_for_frames()
+            self.depth_frame = self.frame.get_depth_frame()
+            self.color_frame = self.frame.get_color_frame()
+            if not self.depth_frame or not self.color_frame:
+                return
+
+    def read(self):
+        # Return the most recent color and depth frame
+        return self.color_frame, self.depth_frame
+
+    def stop(self)        :
+        # Stop the video stream
+        self.stopped = True
+        self.pipeline.stop()
+
 def visualize_boxes_and_labels(frame, boxes, scores, classes, confidence, H, W):
     # Get the bounding box coordinates
     coordinates = get_bb_coordinates(boxes, scores, H, W)
-
+    i = 0
+    
     for coordinate in coordinates:
         # Get the bounding box coordinates
         x1, y1, x2, y2 = coordinate
@@ -46,7 +98,8 @@ def visualize_boxes_and_labels(frame, boxes, scores, classes, confidence, H, W):
         label_ymin = max(y1, labelSize[1] + 10)  
         cv2.rectangle(frame, (x1, label_ymin-labelSize[1]-10), (x1+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED)
         cv2.putText(frame, label, (x1, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-
+        i += 1
+        
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
     distances = []
@@ -73,7 +126,7 @@ def filter_distance(depth_frame, x, y):
     return int(distances.mean())
 
 def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
-    # Initialize list to store midpoints of each bounding box
+    # Initialize list to store bounding box coordinates of each bounding box
     coordinates = []
 
     for detection, score in zip(detections, scores):
@@ -86,11 +139,7 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
             y2 = int(H*y2)
             x2 = int(W*x2)
 
-            #Display the coordinates and scores of each detection
-            print(f"X1: {x1} Y1: {y1} X2: {x2} Y2: {y2}")
-            print("Score: {}%".format(score*100))
-
-            # Add the midpoints to the midpoints list
+            # Add the coordinates to the coordinate list
             coordinates.append([x1, y1, x2, y2])
 
     return coordinates
@@ -111,25 +160,14 @@ if __name__ == "__main__":
     category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS,
                                                                         use_display_name=True)
 
-    # Configure depth and color streams
-    print("[INFO] building and configuring the video pipeline...")
-    pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-
-    # Start streaming and create the fps calculator
-    pipeline.start(config)
+    # Start the video stream and FPS counter
+    vs = RealSenseVideo().start()
     fps = FPS().start()
     print("[INFO] starting video stream...")
 
     while True:
         # Get the video frames from the camera
-        frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
-        if not depth_frame or not color_frame:
-            continue
+        color_frame, depth_frame = vs.read()
                 
         # Convert images to numpy arrays and get the frame dimensions
         depth_image = np.asanyarray(depth_frame.get_data())
@@ -195,6 +233,6 @@ if __name__ == "__main__":
     print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
     
     # Stop video streaming and destroy the frame
-    pipeline.stop()
+    vs.stop()
     cv2.destroyAllWindows()
 
