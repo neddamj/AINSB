@@ -1,16 +1,31 @@
-# Usage: python TFLite-PiCamera-od.py
+'''
+    Author: Jordan Madden
+    Usage: python TFLite-PiCamera-od.py
+'''
 
 import tflite_runtime.interpreter as tflite
 import pyrealsense2.pyrealsense2 as rs
 from imutils.video import FPS
-import os
-import argparse
-import cv2
-import numpy as np
-import sys
-import time
 from threading import Thread
 import importlib.util
+import numpy as np
+import argparse
+import time
+import cv2
+import os
+import sys
+
+# Construct and parse the command line arguments 
+ap = argparse.ArgumentParser()
+ap.add_argument('--model', help='Provide the path to the TFLite file, default is models/model.tflite',
+                    default='/home/pi/tflite/detect.tflite')
+ap.add_argument('--labels', help='Provide the path to the Labels, default is models/labels.txt',
+                    default='/home/pi/tflite/labels.txt')
+ap.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
+                    default=0.5)
+ap.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
+                    default='640x480')               
+args = vars(ap.parse_args())
 
 class RealSenseVideo:
     def __init__(self, width=640, height=480):
@@ -61,37 +76,89 @@ class RealSenseVideo:
         # Stop the video stream
         self.stopped = True
         self.pipeline.stop()
+
+def detect(input_data, input_details, output_details):
+    # Perform the object detection and get the results
+    interpreter.set_tensor(input_details[0]['index'],input_data)
+    interpreter.invoke()
+    
+    boxes = interpreter.get_tensor(output_details[0]['index'])[0] 
+    classes = interpreter.get_tensor(output_details[1]['index'])[0] 
+    scores = interpreter.get_tensor(output_details[2]['index'])[0]
+
+    return (boxes, classes, scores)
+
+def visualize_boxes(frame, boxes, scores, classes, H, W):
+    # Get the bounding box coordinates
+    coordinates = get_bb_coordinates(boxes, scores, H, W)
+    i = 0
+    
+    for coordinate in coordinates:
+        # Get the bounding box coordinates
+        x1, y1, x2, y2 = coordinate
+
+        # Draw bounding box
+        cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
+
+def filter_distance(depth_frame, x, y):
+    #List to store the consecutive distance values and randomly initialized variable
+    distances = []
+    positive = np.random.randint(low=30, high=100)
+
+    i = 0
+    while(i < 75):
+        # Extract the depth value from the camera
+        dist = int(depth_frame.get_distance(x, y) * 100)
         
-parser = argparse.ArgumentParser()
-parser.add_argument('--model', help='Provide the path to the TFLite file, default is models/model.tflite',
-                    default='/home/pi/tflite/detect.tflite')
-parser.add_argument('--labels', help='Provide the path to the Labels, default is models/labels.txt',
-                    default='/home/pi/tflite/labels.txt')
-parser.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
-                    default=0.5)
-parser.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
-                    default='640x480')
-                    
-args = parser.parse_args()
+        # Store the last positive value for use in the event that the
+        # value returned is 0
+        if dist != 0:
+            positive = dist
+        elif dist == 0:
+            positive == positive
 
-# PROVIDE PATH TO MODEL DIRECTORY
-PATH_TO_MODEL_DIR = args.model
+        # Add the distances to the list
+        distances.append(positive)
+        i += 1
 
-# PROVIDE PATH TO LABEL MAP
-PATH_TO_LABELS = args.labels
+    # Convert the list to a numpy array and return it
+    distances = np.asarray(distances)
+    return int(distances.mean())
 
-# PROVIDE THE MINIMUM CONFIDENCE THRESHOLD
-MIN_CONF_THRESH = float(args.threshold)
+def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
+    # Initialize list to store bounding box coordinates of each bounding box
+    coordinates = []
 
-resW, resH = args.resolution.split('x')
+    for detection, score in zip(detections, scores):
+        # Only move forward if score is above the threshold
+        if score > confidence:
+            # Extract the coordinates of the detections and normalize each detection
+            y1, x1, y2, x2 = detection
+            y1 = int(H*y1)
+            x1 = int(W*x1)
+            y2 = int(H*y2)
+            x2 = int(W*x2)
+
+            # Add the coordinates to the coordinate list
+            coordinates.append([x1, y1, x2, y2])
+
+    return coordinates
+
+# Declare relevant constants
+PATH_TO_MODEL_DIR = args["model"]
+PATH_TO_LABELS = args["labels"]
+MIN_CONF_THRESH = args["threshold"]
+
+# Get the desired image dimensions
+resW, resH = args["resolution"].split('x')
 imW, imH = int(resW), int(resH)
-import time
-print('Loading model...', end='')
+
+# Load TF Lite model
+print('[INFO] loading model...')
 start_time = time.time()
 
-# LOAD TFLITE MODEL
 interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)
-# LOAD LABELS
+
 with open(PATH_TO_LABELS, 'r') as f:
     labels = [line.strip() for line in f.readlines()]
 end_time = time.time()
@@ -110,21 +177,13 @@ floating_model = (input_details[0]['dtype'] == np.float32)
 input_mean = 127.5
 input_std = 127.5
 
-# Initialize frame rate calculation
-frame_rate_calc = 1
-freq = cv2.getTickFrequency()
-print('Running inference for Realsense Camera')
-# Initialize video stream
-video = RealSenseVideo().start()
+# Initialize video stream and the FPS counter
+print('[INFO] running inference for realsense camera...')
+video = RealSenseVideo(width=imW, height=imH).start()
 fps = FPS().start()
 time.sleep(1)
 
-#for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 while True:
-    # Start timer (for calculating frame rate)
-    current_count=0
-    t1 = cv2.getTickCount()
-
     # Get the video frames from the camera
     color_frame, depth_frame = video.read()
     
@@ -138,52 +197,20 @@ while True:
     frame_resized = cv2.resize(frame_rgb, (width, height))
     input_data = np.expand_dims(frame_resized, axis=0)
 
-    # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
+    # Normalize pixel values if using a floating model(non-quantized model)
     if floating_model:
         input_data = (np.float32(input_data) - input_mean) / input_std
-
-    # Perform the actual detection by running the model with the image as input
-    interpreter.set_tensor(input_details[0]['index'],input_data)
-    interpreter.invoke()
-
-    # Retrieve detection results
-    boxes = interpreter.get_tensor(output_details[0]['index'])[0] # Bounding box coordinates of detected objects
-    classes = interpreter.get_tensor(output_details[1]['index'])[0] # Class index of detected objects
-    scores = interpreter.get_tensor(output_details[2]['index'])[0] # Confidence of detected objects
-    #num = interpreter.get_tensor(output_details[3]['index'])[0]  # Total number of detected objects (inaccurate and not needed)
-
-    # Loop over all detections and draw detection box if confidence is above minimum threshold
-    for i in range(len(scores)):
-        if ((scores[i] > MIN_CONF_THRESH) and (scores[i] <= 1.0)):
-
-            # Get bounding box coordinates and draw box
-            # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-            ymin = int(max(1,(boxes[i][0] * imH)))
-            xmin = int(max(1,(boxes[i][1] * imW)))
-            ymax = int(min(imH,(boxes[i][2] * imH)))
-            xmax = int(min(imW,(boxes[i][3] * imW)))
+    
+    # Run the object detection and get the results
+    boxes, classes, scores = detect(input_data, input_details, output_details)
+     
+    # Visualize the detections
+    visualize_boxes(frame, boxes, scores, classes, imH, imW)
             
-            cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
-
-            # Draw label
-            object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
-            label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
-            labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
-            label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
-            cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
-            cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
-            current_count+=1
-            
-    # Draw framerate in corner of frame
-    cv2.putText(frame,'FPS: {0:.2f}'.format(frame_rate_calc),(15,25),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,55),2,cv2.LINE_AA)
-    cv2.putText (frame,'Total Detection Count : ' + str(current_count),(15,65),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,55),2,cv2.LINE_AA)
     # All the results have been drawn on the frame, so it's time to display it.
     cv2.imshow('Object Detector', frame)
 
-    # Calculate framerate
-    t2 = cv2.getTickCount()
-    time1 = (t2-t1)/freq
-    frame_rate_calc= 1/time1
+    # Update FPS counter
     fps.update()
 
     # Press 'q' to quit
@@ -191,11 +218,10 @@ while True:
         fps.stop()
         break
 
-# Clean up
 # Show the elapsed time and the respective fps
 print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
 print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
     
+# Stop the video stream
 cv2.destroyAllWindows()
 video.stop()
-print("Done")
