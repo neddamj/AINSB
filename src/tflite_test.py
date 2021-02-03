@@ -17,7 +17,7 @@ import sys
 
 # Construct and parse the command line arguments 
 ap = argparse.ArgumentParser()
-ap.add_argument('--model', help='Provide the path to the TFLite file, default is models/model.tflite',
+ap.add_argument('--model', help='Provide the path to the TFLite file, default is models/detect.tflite',
                     default='/home/pi/tflite/detect.tflite')
 ap.add_argument('--labels', help='Provide the path to the Labels, default is models/labels.txt',
                     default='/home/pi/tflite/labels.txt')
@@ -144,84 +144,106 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
 
     return coordinates
 
-# Declare relevant constants
-PATH_TO_MODEL_DIR = args["model"]
-PATH_TO_LABELS = args["labels"]
-MIN_CONF_THRESH = args["threshold"]
+if __name__ == "__main__":
+    # Declare relevant constants
+    PATH_TO_MODEL_DIR = args["model"]
+    PATH_TO_LABELS = args["labels"]
+    MIN_CONF_THRESH = args["threshold"]
 
-# Get the desired image dimensions
-resW, resH = args["resolution"].split('x')
-imW, imH = int(resW), int(resH)
+    # Get the desired image dimensions
+    resW, resH = args["resolution"].split('x')
+    imW, imH = int(resW), int(resH)
 
-# Load TF Lite model
-print('[INFO] loading model...')
-start_time = time.time()
+    # Load TF Lite model
+    print('[INFO] loading model...')
+    start_time = time.time()
 
-interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)
+    interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)
 
-with open(PATH_TO_LABELS, 'r') as f:
-    labels = [line.strip() for line in f.readlines()]
-end_time = time.time()
-elapsed_time = end_time - start_time
-print('Done! Took {} seconds'.format(elapsed_time))
+    with open(PATH_TO_LABELS, 'r') as f:
+        labels = [line.strip() for line in f.readlines()]
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print('Done! Took {} seconds'.format(elapsed_time))
 
-interpreter.allocate_tensors()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
 
-height = input_details[0]['shape'][1]
-width = input_details[0]['shape'][2]
+    height = input_details[0]['shape'][1]
+    width = input_details[0]['shape'][2]
 
-floating_model = (input_details[0]['dtype'] == np.float32)
+    floating_model = (input_details[0]['dtype'] == np.float32)
 
-input_mean = 127.5
-input_std = 127.5
+    input_mean = 127.5
+    input_std = 127.5
 
-# Initialize video stream and the FPS counter
-print('[INFO] running inference for realsense camera...')
-video = RealSenseVideo(width=imW, height=imH).start()
-fps = FPS().start()
-time.sleep(1)
+    # Initialize video stream and the FPS counter
+    print('[INFO] running inference for realsense camera...')
+    video = RealSenseVideo(width=imW, height=imH).start()
+    fps = FPS().start()
+    time.sleep(1)
 
-while True:
-    # Get the video frames from the camera
-    color_frame, depth_frame = video.read()
-    
-    # Convert images to numpy arrays and get the frame dimensions
-    depth_image = np.asanyarray(depth_frame.get_data())
-    frame1 = np.asanyarray(color_frame.get_data())
+    while True:
+        # Get the video frames from the camera
+        color_frame, depth_frame = video.read()
+        
+        # Convert images to numpy arrays and get the frame dimensions
+        depth_image = np.asanyarray(depth_frame.get_data())
+        frame1 = np.asanyarray(color_frame.get_data())
 
-    # Acquire frame and resize to expected shape [1xHxWx3]
-    frame = frame1.copy()
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_resized = cv2.resize(frame_rgb, (width, height))
-    input_data = np.expand_dims(frame_resized, axis=0)
+        # Acquire frame and resize to expected shape [1xHxWx3]
+        frame = frame1.copy()
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_resized = cv2.resize(frame_rgb, (width, height))
+        input_data = np.expand_dims(frame_resized, axis=0)
 
-    # Normalize pixel values if using a floating model(non-quantized model)
-    if floating_model:
-        input_data = (np.float32(input_data) - input_mean) / input_std
-    
-    # Run the object detection and get the results
-    boxes, classes, scores = detect(input_data, input_details, output_details)
-     
-    # Visualize the detections
-    visualize_boxes(frame, boxes, scores, classes, imH, imW)
+        # Normalize pixel values if using a floating model(non-quantized model)
+        if floating_model:
+            input_data = (np.float32(input_data) - input_mean) / input_std
+        
+        # Run the object detection and get the results
+        boxes, classes, scores = detect(input_data, input_details, output_details)
+         
+        # Visualize the detections
+        visualize_boxes(frame, boxes, scores, classes, imH, imW)
+        
+        points = get_bb_coordinates(boxes, scores, imH, imW)
+        for point in points:
+            # Extract the bounding box coordinates 
+            x1, y1, x2, y2 = point
             
-    # All the results have been drawn on the frame, so it's time to display it.
-    cv2.imshow('Object Detector', frame)
+            # Find the midpoint coordinates
+            midX = (x1+x2)//2
+            midY = (y1+y2)//2
+            
+            # Find the distance at each point
+            dist = filter_distance(depth_frame, midX, midY)
+            
+            # Draw a circle at the midpoint for visual validation
+            cv2.circle(frame, (midX, midY), radius=5, 
+                color=(0,0,255), thickness=2)
+            
+            # Display the distance of each object from the camera
+            text = "Distance: {}cm".format(dist)
+            cv2.putText(frame, text, (x1, y1+20), cv2.FONT_HERSHEY_SIMPLEX, 
+                0.6, (0, 0, 255), thickness=2)
+                
+        # All the results have been drawn on the frame, so it's time to display it.
+        cv2.imshow('Object Detector', frame)
 
-    # Update FPS counter
-    fps.update()
+        # Update FPS counter
+        fps.update()
 
-    # Press 'q' to quit
-    if cv2.waitKey(1) == ord('q'):
-        fps.stop()
-        break
+        # Press 'q' to quit
+        if cv2.waitKey(1) == ord('q'):
+            fps.stop()
+            break
 
-# Show the elapsed time and the respective fps
-print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
-print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
-    
-# Stop the video stream
-cv2.destroyAllWindows()
-video.stop()
+    # Show the elapsed time and the respective fps
+    print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
+        
+    # Stop the video stream
+    cv2.destroyAllWindows()
+    video.stop()
