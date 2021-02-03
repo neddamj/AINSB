@@ -3,15 +3,14 @@
 '''
 
 import os 
+from absl import app
+from absl import flags
+from google.protobuf import text_format
 
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
-from absl import app
-from absl import flags
-
 import tensorflow.compat.v2 as tf
-from google.protobuf import text_format
 from object_detection import export_tflite_graph_lib_tf2
 from object_detection.protos import pipeline_pb2
 
