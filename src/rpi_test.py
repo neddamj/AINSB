@@ -1,32 +1,30 @@
 '''
     Author: Jordan Madden
-    Usage: python rpi_test.py
+    Usage: python tflite_test.py --model="v1" 
 '''
 
+import tflite_runtime.interpreter as tflite
 import pyrealsense2.pyrealsense2 as rs
 from imutils.video import FPS
 from threading import Thread
+import importlib.util
 import numpy as np
 import argparse
-import pathlib
 import time
 import cv2
 import os
+import sys
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    # Suppress TensorFlow logging (1)
-import tensorflow as tf
-from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as viz_utils
-tf.get_logger().setLevel('ERROR')           # Suppress TensorFlow logging (2)
-
-# Construct and parse the command line arguments
+# Construct and parse the command line arguments 
 ap = argparse.ArgumentParser()
-ap.add_argument('--model', help='Folder that the Saved Model is Located In',
-                    default='/home/pi/tensorflow/od_models/my_mobilenet_model')
-ap.add_argument('--labels', help='Where the Labelmap is Located',
-                    default='/home/pi/tensorflow/models/research/object_detection/data/mscoco_label_map.pbtxt')
+ap.add_argument('--model', help='Provide the path to the TFLite file, default is models/detect.tflite',
+                    default='v1')
+ap.add_argument('--labels', help='Provide the path to the Labels, default is models/labels.txt',
+                    default='/home/pi/tflite/labels.txt')
 ap.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
                     default=0.5)
+ap.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
+                    default='640x480')               
 args = vars(ap.parse_args())
 
 class RealSenseVideo:
@@ -79,7 +77,18 @@ class RealSenseVideo:
         self.stopped = True
         self.pipeline.stop()
 
-def visualize_boxes_and_labels(frame, boxes, scores, classes, confidence, H, W):
+def detect(input_data, input_details, output_details):
+    # Perform the object detection and get the results
+    interpreter.set_tensor(input_details[0]['index'],input_data)
+    interpreter.invoke()
+    
+    boxes = interpreter.get_tensor(output_details[0]['index'])[0] 
+    classes = interpreter.get_tensor(output_details[1]['index'])[0] 
+    scores = interpreter.get_tensor(output_details[2]['index'])[0]
+
+    return (boxes, classes, scores)
+
+def visualize_boxes(frame, boxes, scores, classes, H, W):
     # Get the bounding box coordinates
     coordinates = get_bb_coordinates(boxes, scores, H, W)
     i = 0
@@ -91,15 +100,6 @@ def visualize_boxes_and_labels(frame, boxes, scores, classes, confidence, H, W):
         # Draw bounding box
         cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
 
-        # Label the bounding box
-        object_name = category_index[int(classes[i])]['name']
-        label = "{}".format(object_name)
-        labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-        label_ymin = max(y1, labelSize[1] + 10)  
-        cv2.rectangle(frame, (x1, label_ymin-labelSize[1]-10), (x1+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED)
-        cv2.putText(frame, label, (x1, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-        i += 1
-        
 def filter_distance(depth_frame, x, y):
     #List to store the consecutive distance values and randomly initialized variable
     distances = []
@@ -108,7 +108,7 @@ def filter_distance(depth_frame, x, y):
     i = 0
     while(i < 75):
         # Extract the depth value from the camera
-        dist = int(depth_frame.get_distance(x, y) * 100)
+        dist = int(depth_frame.get_distance(x, y)*100)
         
         # Store the last positive value for use in the event that the
         # value returned is 0
@@ -143,60 +143,101 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
             coordinates.append([x1, y1, x2, y2])
 
     return coordinates
-        
-if __name__ == "__main__":
-    # Declare relevant constants(filepaths etc)
-    PATH_TO_MODEL_DIR = args["model"]
-    PATH_TO_LABELS = args["labels"]
-    PATH_TO_SAVED_MODEL = PATH_TO_MODEL_DIR + "/saved_model"
-    CONFIDENCE = args["threshold"]
 
-    # Load the model from disk
+def command(dist, left, right):
+    # Determine the midpoint of each detection and the distance between the object and 
+    # the left and right borders of the frame
+    midX = (left+right)//2
+    dist_left = left - 0
+    dist_right = 640 - right
+
+    # Determine what action the user should take
+    if (dist <= 100 and (midX > 200 and midX < 400)):
+        state = 0
+    else:
+        state = 1
+
+    # Give the feedback to the user based on the determined action 
+    cmd = None
+    if state == 1:
+        cmd = "Forward"
+    elif state == 2:
+        cmd = "Left"
+    elif state == 3:
+        cmd = "Right"
+    elif state == 0:
+        cmd = "Stop"
+
+    return cmd
+
+if __name__ == "__main__":
+    # Declare relevant constants
+    if args["model"] == "v1":
+        model_path = '/home/pi/tflite/detect.tflite'
+    if args["model"] == "v2":
+        model_path = '/home/pi/tflite/model.tflite'
+        
+    PATH_TO_MODEL_DIR = model_path
+    PATH_TO_LABELS = args["labels"]
+    MIN_CONF_THRESH = args["threshold"]
+
+    # Get the desired image dimensions
+    resW, resH = args["resolution"].split('x')
+    imW, imH = int(resW), int(resH)
+
+    # Load TF Lite model
     print('[INFO] loading model...')
     start_time = time.time()
-    detect_fn = tf.saved_model.load(PATH_TO_SAVED_MODEL)
-    print('[INFO] model loaded, took {} seconds'.format(time.time() - start_time))
 
-    category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS,
-                                                                        use_display_name=True)
+    interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)
 
-    # Start the video stream and FPS counter
-    vs = RealSenseVideo().start()
+    with open(PATH_TO_LABELS, 'r') as f:
+        labels = [line.strip() for line in f.readlines()]
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print('Done! Took {} seconds'.format(elapsed_time))
+
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    height = input_details[0]['shape'][1]
+    width = input_details[0]['shape'][2]
+
+    floating_model = (input_details[0]['dtype'] == np.float32)
+
+    input_mean = 127.5
+    input_std = 127.5
+
+    # Initialize video stream and the FPS counter
+    print('[INFO] running inference for realsense camera...')
+    video = RealSenseVideo(width=imW, height=imH).start()
     fps = FPS().start()
-    print("[INFO] starting video stream...")
+    time.sleep(1)
 
     while True:
         # Get the video frames from the camera
-        color_frame, depth_frame = vs.read()
-                
+        color_frame, depth_frame = video.read()
+        
         # Convert images to numpy arrays and get the frame dimensions
         depth_image = np.asanyarray(depth_frame.get_data())
-        frame = np.asanyarray(color_frame.get_data())
-        imH, imW = frame.shape[:2]
+        frame1 = np.asanyarray(color_frame.get_data())
 
-        # Convert np array to tensor and add new axis before passing image to detector
-        input_tensor = tf.convert_to_tensor(frame)
-        input_tensor = input_tensor[tf.newaxis, ...]
-        # input_tensor = np.expand_dims(image_np, 0)
-        detections = detect_fn(input_tensor)
+        # Acquire frame and resize to expected shape [1xHxWx3]
+        frame = frame1.copy()
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_resized = cv2.resize(frame_rgb, (width, height))
+        input_data = np.expand_dims(frame_resized, axis=0)
 
-        # All outputs are batches tensors.
-        # Convert to numpy arrays, and take index [0] to remove the batch dimension.
-        # We're only interested in the first num_detections.
-        num_detections = int(detections.pop('num_detections'))
-        detections = {key: value[0, :num_detections].numpy()
-                       for key, value in detections.items()}
-        detections['num_detections'] = num_detections
-
-        # detection_classes should be ints.
-        detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
+        # Normalize pixel values if using a floating model(non-quantized model)
+        if floating_model:
+            input_data = (np.float32(input_data) - input_mean) / input_std
         
-        # Extract the scores, detections and classes
-        scores = detections['detection_scores']
-        boxes = detections['detection_boxes']
-        classes = detections['detection_classes']
-        
-        visualize_boxes_and_labels(frame, boxes, scores, classes, CONFIDENCE, imH, imW)
+        # Run the object detection and get the results
+        boxes, classes, scores = detect(input_data, input_details, output_details)
+         
+        # Visualize the detections
+        visualize_boxes(frame, boxes, scores, classes, imH, imW)
         
         points = get_bb_coordinates(boxes, scores, imH, imW)
         for point in points:
@@ -216,23 +257,24 @@ if __name__ == "__main__":
             
             # Display the distance of each object from the camera
             text = "Distance: {}cm".format(dist)
-            cv2.putText(frame, text, (midX, midY-20), cv2.FONT_HERSHEY_SIMPLEX, 
-                0.5, (0, 0, 255), thickness=2)
-                        
-        # Show the video frame and update the fps tracker
-        cv2.imshow('Realsense', frame)
+            cv2.putText(frame, text, (x1, y1+20), cv2.FONT_HERSHEY_SIMPLEX, 
+                0.6, (0, 0, 255), thickness=2)
+                
+        # All the results have been drawn on the frame, so it's time to display it.
+        cv2.imshow('Object Detector', frame)
+
+        # Update FPS counter
         fps.update()
 
+        # Press 'q' to quit
         if cv2.waitKey(1) == ord('q'):
-            print("[INFO] ending video stream...")
             fps.stop()
             break
-    
+
     # Show the elapsed time and the respective fps
     print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
     print("[INFO] approximate fps: {:.2f}".format(fps.fps()))
-    
-    # Stop video streaming and destroy the frame
-    vs.stop()
+        
+    # Stop the video stream
     cv2.destroyAllWindows()
-
+    video.stop()
