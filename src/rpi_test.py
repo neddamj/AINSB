@@ -1,6 +1,6 @@
 '''
     Author: Jordan Madden
-    Usage: python tflite_test.py --model="v1" 
+    Usage: python rpi_test.py --model="v1" 
 '''
 
 import tflite_runtime.interpreter as tflite

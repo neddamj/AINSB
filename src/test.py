@@ -5,6 +5,7 @@
 '''
 
 from playsound import playsound 
+from threading import Thread
 import pyrealsense2 as rs
 import numpy as np
 import argparse
@@ -22,6 +23,56 @@ from object_detection.utils import visualization_utils as viz_utils
 
 # Suppress TensorFlow logging (2)
 tf.get_logger().setLevel('ERROR')
+
+class RealSenseVideo:
+    def __init__(self, width=640, height=480):
+        # Frame dimensions of camera
+        self.width = width
+        self.height = height
+
+        # Build and enable the depth and color frames
+        self.pipeline = rs.pipeline()
+        self.config = rs.config()
+        self.config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
+        self.config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
+
+        # Start streaming
+        self.pipeline.start(self.config)
+        
+        # Read the first frame from the stream
+        self.frame = self.pipeline.wait_for_frames()
+        self.depth_frame = self.frame.get_depth_frame()
+        self.color_frame = self.frame.get_color_frame()
+
+        # Variable to check if thread should be stopped
+        self.stopped = False
+
+    def start(self):
+        # Start the thread to read the frames from the video stream
+        Thread(target=self.update, args=()).start()
+        return self
+
+    def update(self):
+        while True:
+            # Stop streaming in indicator is set
+            if self.stopped:
+                return
+
+            # Otherwise read the next frame in the stream
+            self.frame = self.pipeline.wait_for_frames()
+            self.depth_frame = self.frame.get_depth_frame()
+            self.color_frame = self.frame.get_color_frame()
+            if not self.depth_frame or not self.color_frame:
+                return
+
+    def read(self):
+        # Return the most recent color and depth frame
+        return self.color_frame, self.depth_frame
+
+    def stop(self)        :
+        # Stop the video stream
+        self.stopped = True
+        self.pipeline.stop()
 
 def model_name(model):
     # Return the name of the model that was specified through the command
@@ -109,31 +160,51 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
 
     return coords
 
-def command(dist, left, right):
+def command(val, frame):
+    text = "Command: {}".format(val)
+    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 255))
+
+def checkpoints(depth_frame):
+    W, H = 640, 480
+    # Coordinates of the points to be checked in the frame
+    center = filter_distance(depth_frame, W//2, H//2)
+    right = filter_distance(depth_frame, W//2 + 80, H//2)
+    left = filter_distance(depth_frame, W//2 - 80, H//2)
+    l_center = filter_distance(depth_frame, W//2, H//2 + 180)
+    l_right = filter_distance(depth_frame, W//2 + 60, H//2 + 180)
+    l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
+    
+    # If any of the checkpoints are triggered raise a notification
+    if ((center < 120) or (left < 120) or (right < 120) or 
+        (l_center < 120) or (l_left < 120) or (l_right < 120)):
+        return True
+    
+    return False
+
+def stop_moving(dist, depth_frame):
+    # Stop moving if an object is detected within 1.5 meters or if any of the 
+    # chekpoints are triggered
+    if ((dist < 120) or checkpoints(depth_frame)):
+        return True    
+    
+    # If none of the conditions are met, keep moving
+    return False
+
+def navigate(frame, depth_frame, dist, left, right):
     # Determine the midpoint of each detection and the distance between the object and 
     # the left and right borders of the frame
     midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
-
-    # Determine what action the user should take
-    if (dist <= 100 and (midX > 200 and midX < 400)):
-        state = 0
+    
+    if stop_moving(dist, depth_frame):
+        # Stop moving for a bit while deciding what action to take
+        command("Stop", frame)
+        #time.sleep(1.0)
     else:
-        state = 1
-
-    # Give the feedback to the user based on the determined action 
-    cmd = None
-    if state == 1:
-        cmd = "Forward"
-    elif state == 2:
-        cmd = "Left"
-    elif state == 3:
-        cmd = "Right"
-    elif state == 0:
-        cmd = "Stop"
-
-    return cmd
+        # Move forward
+        command("Forward", frame)
 
 if __name__ == "__main__":
     # Construct and parse the command line arguments
@@ -188,27 +259,13 @@ if __name__ == "__main__":
 
     category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
-    # Configure depth and color streams
-    print("[INFO] building and configuring the video pipeline...")
-    pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-
-    # Start streaming
-    print("[INFO] starting video stream...")
-    pipeline.start(config)
-
-    cmnd = "Forward"
+    # Start the video stream
+    vs = RealSenseVideo().start()
 
     try:
         while True:
-            # Wait for a coherent pair of frames: depth and color
-            frames = pipeline.wait_for_frames()
-            depth_frame = frames.get_depth_frame()
-            color_frame = frames.get_color_frame()
-            if not depth_frame or not color_frame:
-                continue   
+            # Get the video frames from the camera
+            color_frame, depth_frame = vs.read() 
 
             # Extract the dimensions of the depth frame
             (H, W) = depth_frame.get_height(), depth_frame.get_width()
@@ -267,16 +324,12 @@ if __name__ == "__main__":
                     0.5, (0, 0, 255), thickness=2)
 
                 # Determine what command to give to the user
-                cmnd = command(dist, x1, x2)
+                navigate(frame, depth_frame, dist, x1, x2)
 
-            # Draw vertical lines on the video frame
-            cv2.line(frame, (200, 0), (200, 480), (0, 0, 255), 2)
-            cv2.line(frame, (400, 0), (400, 480), (0, 0, 255), 2)
-
-            #Display the command to be given to the user
-            text = "Command: {}".format(cmnd)
-            cv2.putText(frame, text, (5, 15), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            if checkpoints(depth_frame):
+                command("Stop", frame)
+            else:
+                command("Forward", frame)
 
             # Display the video frame 
             cv2.namedWindow('RealSense')
@@ -289,7 +342,7 @@ if __name__ == "__main__":
                 break
 
         # Stop streaming
-        pipeline.stop()
+        vs.stop()
         cv2.destroyAllWindows()
         
     except Exception as e:
