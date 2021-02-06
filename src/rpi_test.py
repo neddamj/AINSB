@@ -19,8 +19,6 @@ import sys
 ap = argparse.ArgumentParser()
 ap.add_argument('--model', help='Provide the path to the TFLite file, default is models/detect.tflite',
                     default='v1')
-ap.add_argument('--labels', help='Provide the path to the Labels, default is models/labels.txt',
-                    default='/home/pi/tflite/labels.txt')
 ap.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
                     default=0.5)
 ap.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
@@ -178,7 +176,6 @@ if __name__ == "__main__":
         model_path = '/home/pi/tflite/model.tflite'
         
     PATH_TO_MODEL_DIR = model_path
-    PATH_TO_LABELS = args["labels"]
     MIN_CONF_THRESH = args["threshold"]
 
     # Get the desired image dimensions
@@ -190,9 +187,7 @@ if __name__ == "__main__":
     start_time = time.time()
 
     interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)
-
-    with open(PATH_TO_LABELS, 'r') as f:
-        labels = [line.strip() for line in f.readlines()]
+    
     end_time = time.time()
     elapsed_time = end_time - start_time
     print('Done! Took {} seconds'.format(elapsed_time))
