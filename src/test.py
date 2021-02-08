@@ -165,6 +165,11 @@ def command(val, frame):
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 0, 255))
 
+def erase_command(frame):
+    text = "Command: __________"
+    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 255))
+
 def checkpoints(depth_frame):
     W, H = 640, 480
     # Coordinates of the points to be checked in the frame
@@ -197,11 +202,18 @@ def navigate(frame, depth_frame, dist, left, right):
     midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
+    erase_command(frame)
     
     if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take
         command("Stop", frame)
-        #time.sleep(1.0)
+        time.sleep(0.5)
+        erase_command(frame)
+
+        if dist_left > dist_right:
+            command("Left", frame)
+        elif dist_right > dist_left:
+            command("Right", frame)
     else:
         # Move forward
         command("Forward", frame)
@@ -347,6 +359,3 @@ if __name__ == "__main__":
         
     except Exception as e:
         print("Problem: {}".format(e))
-
-
-
