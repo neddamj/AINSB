@@ -164,18 +164,15 @@ def command(val, frame):
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 0, 0), thickness=2)
 
-def erase_command(frame):
-    text = "Command: "
-    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
-    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-            1.0, (0, 0, 0))
-
 def checkpoints(depth_frame):
+    global checkpoint_detection
+    checkpoint_detection = False
     W, H = 640, 480
+
     # Coordinates of the points to be checked in the frame
     center = filter_distance(depth_frame, W//2, H//2)
-    right = filter_distance(depth_frame, W//2 + 80, H//2)
-    left = filter_distance(depth_frame, W//2 - 80, H//2)
+    right = filter_distance(depth_frame, W//2 + 90, H//2)
+    left = filter_distance(depth_frame, W//2 - 90, H//2)
     l_center = filter_distance(depth_frame, W//2, H//2 + 180)
     l_right = filter_distance(depth_frame, W//2 + 60, H//2 + 180)
     l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
@@ -191,7 +188,7 @@ def checkpoints(depth_frame):
 def stop_moving(dist, depth_frame):
     # Stop moving if an object is detected within 1.5 meters or if any of the 
     # chekpoints are triggered
-    if ((dist < min_distance) or checkpoints(depth_frame)):
+    if (checkpoints(depth_frame)  or (dist < min_distance)):
         return True    
     
     # If none of the conditions are met, keep moving
@@ -203,13 +200,11 @@ def navigate(frame, depth_frame, dist, left, right):
     midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
-    erase_command(frame)
     
     if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take
-        #command("Stop", frame)
+        command("Stop", frame)
         time.sleep(0.5)
-        erase_command(frame)
 
         if dist_left > dist_right:
             command("Left", frame)
@@ -259,8 +254,6 @@ if __name__ == "__main__":
     SCALE_W = 0.5
 
     # Declare variables and constants for navigation
-    global checkpoint_detection
-    global min_distance 
     checkpoint_detection = False
     min_distance = 120
     
@@ -349,6 +342,7 @@ if __name__ == "__main__":
             if not checkpoint_detection:
                 if checkpoints(depth_frame):
                     command("Stop", frame)
+                    time.sleep(0.5)
                 else:
                     command("Forward", frame)
 
