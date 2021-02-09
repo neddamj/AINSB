@@ -151,9 +151,7 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
             y2 = int(H*y2)
             x2 = int(W*x2)
 
-            #Display the coordinates and scores of each detection
-            print(f"X1: {x1} Y1: {y1} X2: {x2} Y2: {y2}")
-            print("Score: {}%".format(score*100))
+            print("DETECTION")
 
             # Add the midpoints to the midpoints list
             coords.append([x1, y1, x2, y2])
@@ -162,13 +160,15 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
 
 def command(val, frame):
     text = "Command: {}".format(val)
+    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-            0.5, (0, 0, 255))
+            0.5, (0, 0, 0), thickness=2)
 
 def erase_command(frame):
-    text = "Command: __________"
+    text = "Command: "
+    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-            0.5, (0, 0, 255))
+            1.0, (0, 0, 0))
 
 def checkpoints(depth_frame):
     W, H = 640, 480
@@ -181,8 +181,9 @@ def checkpoints(depth_frame):
     l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
     
     # If any of the checkpoints are triggered raise a notification
-    if ((center < 120) or (left < 120) or (right < 120) or 
-        (l_center < 120) or (l_left < 120) or (l_right < 120)):
+    if ((center < min_distance) or (left < min_distance) or (right < min_distance) or 
+        (l_center < min_distance) or (l_left < min_distance) or (l_right < min_distance)):
+        checkpoint_detection = True
         return True
     
     return False
@@ -190,7 +191,7 @@ def checkpoints(depth_frame):
 def stop_moving(dist, depth_frame):
     # Stop moving if an object is detected within 1.5 meters or if any of the 
     # chekpoints are triggered
-    if ((dist < 120) or checkpoints(depth_frame)):
+    if ((dist < min_distance) or checkpoints(depth_frame)):
         return True    
     
     # If none of the conditions are met, keep moving
@@ -206,7 +207,7 @@ def navigate(frame, depth_frame, dist, left, right):
     
     if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take
-        command("Stop", frame)
+        #command("Stop", frame)
         time.sleep(0.5)
         erase_command(frame)
 
@@ -256,6 +257,12 @@ if __name__ == "__main__":
     # Declare the relevant constants for the use of the realsense camera
     SCALE_H = 0.5
     SCALE_W = 0.5
+
+    # Declare variables and constants for navigation
+    global checkpoint_detection
+    global min_distance 
+    checkpoint_detection = False
+    min_distance = 120
     
     # Build the object detector, restore its weights from the checkpoint file
     # and load the label map
@@ -272,7 +279,8 @@ if __name__ == "__main__":
     category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
     # Start the video stream
-    vs = RealSenseVideo().start()
+    print("[INFO] starting video stream...")
+    vs = RealSenseVideo(width=640, height=480).start()
 
     try:
         while True:
@@ -337,11 +345,14 @@ if __name__ == "__main__":
 
                 # Determine what command to give to the user
                 navigate(frame, depth_frame, dist, x1, x2)
+            
+            if not checkpoint_detection:
+                if checkpoints(depth_frame):
+                    command("Stop", frame)
+                else:
+                    command("Forward", frame)
 
-            if checkpoints(depth_frame):
-                command("Stop", frame)
-            else:
-                command("Forward", frame)
+            checkpoint_detection = False
 
             # Display the video frame 
             cv2.namedWindow('RealSense')
