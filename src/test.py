@@ -159,6 +159,7 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
     return coords
 
 def command(val, frame):
+    # Display the command on the screen
     text = "Command: {}".format(val)
     cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,

@@ -142,31 +142,62 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
 
     return coordinates
 
-def command(dist, left, right):
+def command(val, frame):
+    # Display command on the screen
+    text = "Command: {}".format(val)
+    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
+    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 0), thickness=2)
+
+def checkpoints(depth_frame):
+    global checkpoint_detection
+    checkpoint_detection = False
+    W, H = 640, 480
+
+    # Coordinates of the points to be checked in the frame
+    center = filter_distance(depth_frame, W//2, H//2)
+    right = filter_distance(depth_frame, W//2 + 90, H//2)
+    left = filter_distance(depth_frame, W//2 - 90, H//2)
+    l_center = filter_distance(depth_frame, W//2, H//2 + 180)
+    l_right = filter_distance(depth_frame, W//2 + 60, H//2 + 180)
+    l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
+    
+    # If any of the checkpoints are triggered raise a notification
+    if ((center < min_distance) or (left < min_distance) or (right < min_distance) or 
+        (l_center < min_distance) or (l_left < min_distance) or (l_right < min_distance)):
+        checkpoint_detection = True
+        return True
+    
+    return False
+
+def stop_moving(dist, depth_frame):
+    # Stop moving if an object is detected within 1.5 meters or if any of the 
+    # chekpoints are triggered
+    if (checkpoints(depth_frame)  or (dist < min_distance)):
+        return True    
+    
+    # If none of the conditions are met, keep moving
+    return False
+
+def navigate(frame, depth_frame, dist, left, right):
     # Determine the midpoint of each detection and the distance between the object and 
     # the left and right borders of the frame
     midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
+    
+    if stop_moving(dist, depth_frame):
+        # Stop moving for a bit while deciding what action to take
+        command("Stop", frame)
+        time.sleep(0.5)
 
-    # Determine what action the user should take
-    if (dist <= 100 and (midX > 200 and midX < 400)):
-        state = 0
+        if dist_left > dist_right:
+            command("Left", frame)
+        elif dist_right > dist_left:
+            command("Right", frame)
     else:
-        state = 1
-
-    # Give the feedback to the user based on the determined action 
-    cmd = None
-    if state == 1:
-        cmd = "Forward"
-    elif state == 2:
-        cmd = "Left"
-    elif state == 3:
-        cmd = "Right"
-    elif state == 0:
-        cmd = "Stop"
-
-    return cmd
+        # Move forward
+        command("Forward", frame)
 
 if __name__ == "__main__":
     # Declare relevant constants
@@ -181,6 +212,10 @@ if __name__ == "__main__":
     # Get the desired image dimensions
     resW, resH = args["resolution"].split('x')
     imW, imH = int(resW), int(resH)
+
+    # Declare variables and constants for navigation
+    checkpoint_detection = False
+    min_distance = 120
 
     # Load TF Lite model
     print('[INFO] loading model...')
@@ -237,11 +272,11 @@ if __name__ == "__main__":
         points = get_bb_coordinates(boxes, scores, imH, imW)
         for point in points:
             # Extract the bounding box coordinates 
-            x1, y1, x2, y2 = point
+            startX, startY, endX, endY = point
             
             # Find the midpoint coordinates
-            midX = (x1+x2)//2
-            midY = (y1+y2)//2
+            midX = (startX+endX)//2
+            midY = startY+endY)//2
             
             # Find the distance at each point
             dist = filter_distance(depth_frame, midX, midY)
@@ -252,8 +287,19 @@ if __name__ == "__main__":
             
             # Display the distance of each object from the camera
             text = "Distance: {}cm".format(dist)
-            cv2.putText(frame, text, (x1, y1+20), cv2.FONT_HERSHEY_SIMPLEX, 
+            cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.6, (0, 0, 255), thickness=2)
+
+            # Determine what command to give to the user
+            navigate(frame, depth_frame, dist, startX, endX)
+
+        if not checkpoint_detection:
+            if checkpoints(depth_frame):
+                command("Stop", frame)
+            else:
+                command("Forward", frame)
+
+        checkpoint_detection = False
                 
         # All the results have been drawn on the frame, so it's time to display it.
         cv2.imshow('Object Detector', frame)
