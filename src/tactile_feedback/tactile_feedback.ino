@@ -9,14 +9,26 @@
  */
 
 #include <Arduino.h>
+#include <Wire.h>
 
 #define F A1
 #define L A2
 #define R A3 
 
+#define led 13
+
 void setup() {
-  // Set the baud rate of the microcontroller
+  // Set the baud rate for serial communication
   Serial.begin(9600);
+  
+  // Join the I2C bus as a slave device
+  Wire.begin(0x08);
+
+  // Call receive event when data is received
+  Wire.onReceive(receiveEvent);
+
+  pinMode(led, OUTPUT);
+  digitalWrite(led, LOW);
 
   // Set the mode of the I/O pins
   pinMode(F, OUTPUT);
@@ -24,21 +36,27 @@ void setup() {
   pinMode(R, OUTPUT);
 }
 
-void loop() {
-  // Recieve message from Raspberry Pi
-  unsigned char recMessage = Serial.read();
-  
-  if(recMessage == 1){
-    forward(); 
-  }
-  else if(recMessage == 2){
-    left();
-  }
-  else if(recMessage == 3){
-    right();
-  }
+void receiveEvent(int howMany){
+   while(Wire.available()){
+    char c = Wire.read();
+    digitalWrite(led, c);  
+   }
+}
 
+void loop() {
   delay(1000);
+  
+//  if(recMessage == 1){
+//    forward(); 
+//  }
+//  else if(recMessage == 2){
+//    left();
+//  }
+//  else if(recMessage == 3){
+//    right();
+//  }
+//
+//  delay(1000);
 }
 
 void forward(){
