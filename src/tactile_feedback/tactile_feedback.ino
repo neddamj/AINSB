@@ -15,8 +15,6 @@
 #define L A2
 #define R A3 
 
-#define led 13
-
 void setup() {
   // Set the baud rate for serial communication
   Serial.begin(9600);
@@ -27,52 +25,57 @@ void setup() {
   // Call receive event when data is received
   Wire.onReceive(receiveEvent);
 
-  pinMode(led, OUTPUT);
-  digitalWrite(led, LOW);
-
   // Set the mode of the I/O pins
   pinMode(F, OUTPUT);
   pinMode(L, OUTPUT);
   pinMode(R, OUTPUT);
 }
 
-void receiveEvent(int howMany){
-   while(Wire.available()){
-    char c = Wire.read();
-    digitalWrite(led, c);  
-   }
+void loop() {
+  Serial.println("-----------");
 }
 
-void loop() {
-  delay(1000);
-  
-//  if(recMessage == 1){
-//    forward(); 
-//  }
-//  else if(recMessage == 2){
-//    left();
-//  }
-//  else if(recMessage == 3){
-//    right();
-//  }
-//
-//  delay(1000);
+void receiveEvent(int howMany){
+   while(Wire.available()){
+    char recMessage = Wire.read();
+
+    commandUser(recMessage);
+   }
 }
 
 void forward(){
   digitalWrite(F, HIGH);
+  Serial.println(" Go Forward");
 }
 
-void left(){
+void turnLeft(){
   digitalWrite(L, HIGH);
+  Serial.println("Turn Left");
 }
 
-void right(){
+void turnRight(){
   digitalWrite(R, HIGH);
+  Serial.println("Turn Right");
 }
 
 void stopMoving(){
   digitalWrite(F, HIGH);
   digitalWrite(L, HIGH);
   digitalWrite(R, HIGH);
+  Serial.println("Stop Moving");
+}
+
+void commandUser(unsigned char recMessage){
+  if(recMessage == 1){
+    forward();
+  }
+  else if(recMessage == 2){
+    turnLeft();
+  }
+  else if(recMessage == 3){
+    turnRight();
+  }
+  else{
+    stopMoving();
+  }
 }
