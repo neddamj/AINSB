@@ -31,9 +31,7 @@ void setup() {
   pinMode(R, OUTPUT);
 }
 
-void loop() {
-  Serial.println("-----------");
-}
+void loop(){}
 
 void receiveEvent(int howMany){
    while(Wire.available()){
@@ -45,7 +43,7 @@ void receiveEvent(int howMany){
 
 void forward(){
   digitalWrite(F, HIGH);
-  Serial.println(" Go Forward");
+  Serial.println("Go Forward");
 }
 
 void turnLeft(){
