@@ -7,6 +7,7 @@ import tflite_runtime.interpreter as tflite
 import pyrealsense2.pyrealsense2 as rs
 from imutils.video import FPS
 from threading import Thread
+from smbus import SMBus
 import importlib.util
 import numpy as np
 import argparse
@@ -24,6 +25,10 @@ ap.add_argument('--threshold', help='Minimum confidence threshold for displaying
 ap.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
                     default='640x480')               
 args = vars(ap.parse_args())
+
+# Set the bus address and indicate I2C-1
+addr = 0x08
+bus = SMBus(1)
 
 class RealSenseVideo:
     def __init__(self, width=640, height=480):
@@ -143,11 +148,24 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
     return coordinates
 
 def command(val, frame):
+    # Send data to chip so that it can prvide feedback
+    send_feedback_command(val)
+    
     # Display command on the screen
     text = "Command: {}".format(val)
     cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 0, 0), thickness=2)
+    
+def send_feedback_command(command):    
+    if command == "Forward":
+        bus.write_byte(addr, 0x01)
+    elif command == "Left":
+        bus.write_byte(addr, 0x02)
+    elif command == "Right":
+        bus.write_byte(addr, 0x03)
+    elif command == "Stop":
+        bus.write_byte(addr, 0x00)
 
 def checkpoints(depth_frame):
     global checkpoint_detection
@@ -276,7 +294,7 @@ if __name__ == "__main__":
             
             # Find the midpoint coordinates
             midX = (startX+endX)//2
-            midY = startY+endY)//2
+            midY = (startY+endY)//2
             
             # Find the distance at each point
             dist = filter_distance(depth_frame, midX, midY)
