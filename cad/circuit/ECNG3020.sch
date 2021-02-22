@@ -13864,20 +13864,6 @@ naming: grid - package width</description>
 <wire x1="88.9" y1="139.7" x2="88.9" y2="129.54" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="TXM" class="0">
-<segment>
-<pinref part="U1" gate="A" pin="PD1"/>
-<wire x1="50.8" y1="104.14" x2="58.42" y2="104.14" width="0.1524" layer="91"/>
-<label x="53.34" y="101.6" size="1.778" layer="95"/>
-</segment>
-</net>
-<net name="RXM" class="0">
-<segment>
-<pinref part="U1" gate="A" pin="PD0"/>
-<wire x1="50.8" y1="106.68" x2="58.42" y2="106.68" width="0.1524" layer="91"/>
-<label x="53.34" y="106.68" size="1.778" layer="95"/>
-</segment>
-</net>
 <net name="N$13" class="0">
 <segment>
 <pinref part="X7" gate="-2" pin="S"/>
