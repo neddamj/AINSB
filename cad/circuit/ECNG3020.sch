@@ -13486,17 +13486,17 @@ naming: grid - package width</description>
 <part name="C8" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="050-024X044" package3d_urn="urn:adsk.eagle:package:23643/1" value="22p"/>
 <part name="SUPPLY3" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="P+3" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="VCC" device=""/>
-<part name="T1" library="transistor-neu-to92" library_urn="urn:adsk.eagle:library:397" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28725/2"/>
-<part name="T2" library="transistor-neu-to92" library_urn="urn:adsk.eagle:library:397" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28725/2"/>
-<part name="T3" library="transistor-neu-to92" library_urn="urn:adsk.eagle:library:397" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28725/2"/>
+<part name="TO_MOTOR1" library="transistor-neu-to92" library_urn="urn:adsk.eagle:library:397" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28725/2"/>
+<part name="TO_MOTOR2" library="transistor-neu-to92" library_urn="urn:adsk.eagle:library:397" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28725/2"/>
+<part name="TO_MOTOR3" library="transistor-neu-to92" library_urn="urn:adsk.eagle:library:397" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28725/2"/>
 <part name="SUPPLY6" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="SUPPLY7" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="SUPPLY8" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
-<part name="X1" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
-<part name="X2" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
-<part name="X3" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
-<part name="X6" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
-<part name="X7" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
+<part name="MOTOR1" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
+<part name="MOTOR2" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
+<part name="MOTOR3" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
+<part name="I2C_BUS" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
+<part name="POWER_IN" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
 <part name="R6" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="0207/10" package3d_urn="urn:adsk.eagle:package:23491/2" value="10k"/>
 <part name="R9" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="0207/10" package3d_urn="urn:adsk.eagle:package:23491/2" value="10k"/>
 <part name="R10" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="0207/10" package3d_urn="urn:adsk.eagle:package:23491/2" value="10k"/>
@@ -13505,6 +13505,7 @@ naming: grid - package width</description>
 <part name="C3" library="capacitor-wima" library_urn="urn:adsk.eagle:library:116" deviceset="C" device="2,5-3" package3d_urn="urn:adsk.eagle:package:5436/1"/>
 <part name="SUPPLY9" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="AVRISP" library="pinhead_2" deviceset="PINHD-2X3" device=""/>
+<part name="RPI_POWER" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2021" device="" package3d_urn="urn:adsk.eagle:package:8078633/1"/>
 </parts>
 <sheets>
 <sheet>
@@ -13548,15 +13549,15 @@ naming: grid - package width</description>
 <instance part="P+3" gate="VCC" x="12.7" y="111.76" smashed="yes">
 <attribute name="VALUE" x="10.16" y="109.22" size="1.778" layer="96" rot="R90"/>
 </instance>
-<instance part="T1" gate="G1" x="86.36" y="124.46" smashed="yes">
+<instance part="TO_MOTOR1" gate="G1" x="86.36" y="124.46" smashed="yes">
 <attribute name="NAME" x="76.2" y="132.08" size="1.778" layer="95"/>
 <attribute name="VALUE" x="76.2" y="129.54" size="1.778" layer="96"/>
 </instance>
-<instance part="T2" gate="G1" x="96.52" y="109.22" smashed="yes">
+<instance part="TO_MOTOR2" gate="G1" x="96.52" y="109.22" smashed="yes">
 <attribute name="NAME" x="86.36" y="116.84" size="1.778" layer="95"/>
 <attribute name="VALUE" x="86.36" y="114.3" size="1.778" layer="96"/>
 </instance>
-<instance part="T3" gate="G1" x="104.14" y="91.44" smashed="yes">
+<instance part="TO_MOTOR3" gate="G1" x="104.14" y="91.44" smashed="yes">
 <attribute name="NAME" x="93.98" y="99.06" size="1.778" layer="95"/>
 <attribute name="VALUE" x="93.98" y="96.52" size="1.778" layer="96"/>
 </instance>
@@ -13569,39 +13570,39 @@ naming: grid - package width</description>
 <instance part="SUPPLY8" gate="GND" x="88.9" y="114.3" smashed="yes">
 <attribute name="VALUE" x="86.995" y="111.125" size="1.778" layer="96"/>
 </instance>
-<instance part="X1" gate="-1" x="91.44" y="142.24" smashed="yes">
+<instance part="MOTOR1" gate="-1" x="91.44" y="142.24" smashed="yes">
 <attribute name="NAME" x="93.98" y="141.478" size="1.524" layer="95"/>
 <attribute name="VALUE" x="90.678" y="143.637" size="1.778" layer="96"/>
 </instance>
-<instance part="X1" gate="-2" x="91.44" y="139.7" smashed="yes">
+<instance part="MOTOR1" gate="-2" x="91.44" y="139.7" smashed="yes">
 <attribute name="NAME" x="93.98" y="138.938" size="1.524" layer="95"/>
 </instance>
-<instance part="X2" gate="-1" x="101.6" y="129.54" smashed="yes">
+<instance part="MOTOR2" gate="-1" x="101.6" y="129.54" smashed="yes">
 <attribute name="NAME" x="104.14" y="128.778" size="1.524" layer="95"/>
 <attribute name="VALUE" x="100.838" y="130.937" size="1.778" layer="96"/>
 </instance>
-<instance part="X2" gate="-2" x="101.6" y="127" smashed="yes">
+<instance part="MOTOR2" gate="-2" x="101.6" y="127" smashed="yes">
 <attribute name="NAME" x="104.14" y="126.238" size="1.524" layer="95"/>
 </instance>
-<instance part="X3" gate="-1" x="109.22" y="114.3" smashed="yes">
+<instance part="MOTOR3" gate="-1" x="109.22" y="114.3" smashed="yes">
 <attribute name="NAME" x="111.76" y="113.538" size="1.524" layer="95"/>
 <attribute name="VALUE" x="108.458" y="115.697" size="1.778" layer="96"/>
 </instance>
-<instance part="X3" gate="-2" x="109.22" y="111.76" smashed="yes">
+<instance part="MOTOR3" gate="-2" x="109.22" y="111.76" smashed="yes">
 <attribute name="NAME" x="111.76" y="110.998" size="1.524" layer="95"/>
 </instance>
-<instance part="X6" gate="-1" x="127" y="73.66" smashed="yes">
+<instance part="I2C_BUS" gate="-1" x="127" y="73.66" smashed="yes">
 <attribute name="NAME" x="129.54" y="72.898" size="1.524" layer="95"/>
 <attribute name="VALUE" x="126.238" y="75.057" size="1.778" layer="96"/>
 </instance>
-<instance part="X6" gate="-2" x="127" y="71.12" smashed="yes">
+<instance part="I2C_BUS" gate="-2" x="127" y="71.12" smashed="yes">
 <attribute name="NAME" x="129.54" y="70.358" size="1.524" layer="95"/>
 </instance>
-<instance part="X7" gate="-1" x="-121.92" y="109.22" smashed="yes" rot="R180">
+<instance part="POWER_IN" gate="-1" x="-121.92" y="109.22" smashed="yes" rot="R180">
 <attribute name="NAME" x="-124.46" y="109.982" size="1.524" layer="95" rot="R180"/>
 <attribute name="VALUE" x="-121.158" y="107.823" size="1.778" layer="96" rot="R180"/>
 </instance>
-<instance part="X7" gate="-2" x="-121.92" y="111.76" smashed="yes" rot="R180">
+<instance part="POWER_IN" gate="-2" x="-121.92" y="111.76" smashed="yes" rot="R180">
 <attribute name="NAME" x="-124.46" y="112.522" size="1.524" layer="95" rot="R180"/>
 </instance>
 <instance part="R6" gate="G$1" x="81.28" y="91.44" smashed="yes" rot="R180">
@@ -13635,6 +13636,13 @@ naming: grid - package width</description>
 <attribute name="NAME" x="-95.25" y="81.915" size="1.778" layer="95"/>
 <attribute name="VALUE" x="-95.25" y="68.58" size="1.778" layer="96"/>
 </instance>
+<instance part="RPI_POWER" gate="-1" x="7.62" y="129.54" smashed="yes">
+<attribute name="NAME" x="10.16" y="128.778" size="1.524" layer="95"/>
+<attribute name="VALUE" x="6.858" y="130.937" size="1.778" layer="96"/>
+</instance>
+<instance part="RPI_POWER" gate="-2" x="7.62" y="127" smashed="yes">
+<attribute name="NAME" x="10.16" y="126.238" size="1.524" layer="95"/>
+</instance>
 </instances>
 <busses>
 </busses>
@@ -13667,6 +13675,11 @@ naming: grid - package width</description>
 <pinref part="AVRISP" gate="A" pin="2"/>
 <wire x1="-83.82" y1="78.74" x2="-73.66" y2="78.74" width="0.1524" layer="91"/>
 <label x="-76.2" y="78.74" size="1.778" layer="95"/>
+</segment>
+<segment>
+<pinref part="RPI_POWER" gate="-1" pin="S"/>
+<wire x1="5.08" y1="129.54" x2="-2.54" y2="129.54" width="0.1524" layer="91"/>
+<label x="-2.54" y="129.54" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="RST" class="0">
@@ -13727,20 +13740,20 @@ naming: grid - package width</description>
 <segment>
 <pinref part="SUPPLY6" gate="GND" pin="GND"/>
 <wire x1="106.68" y1="83.82" x2="106.68" y2="86.36" width="0.1524" layer="91"/>
-<pinref part="T3" gate="G1" pin="E"/>
+<pinref part="TO_MOTOR3" gate="G1" pin="E"/>
 </segment>
 <segment>
 <pinref part="SUPPLY7" gate="GND" pin="GND"/>
 <wire x1="99.06" y1="101.6" x2="99.06" y2="104.14" width="0.1524" layer="91"/>
-<pinref part="T2" gate="G1" pin="E"/>
+<pinref part="TO_MOTOR2" gate="G1" pin="E"/>
 </segment>
 <segment>
 <pinref part="SUPPLY8" gate="GND" pin="GND"/>
 <wire x1="88.9" y1="116.84" x2="88.9" y2="119.38" width="0.1524" layer="91"/>
-<pinref part="T1" gate="G1" pin="E"/>
+<pinref part="TO_MOTOR1" gate="G1" pin="E"/>
 </segment>
 <segment>
-<pinref part="X7" gate="-1" pin="S"/>
+<pinref part="POWER_IN" gate="-1" pin="S"/>
 <wire x1="-119.38" y1="109.22" x2="-111.76" y2="109.22" width="0.1524" layer="91"/>
 <label x="-114.3" y="106.68" size="1.778" layer="95"/>
 </segment>
@@ -13753,6 +13766,11 @@ naming: grid - package width</description>
 <pinref part="AVRISP" gate="A" pin="6"/>
 <wire x1="-83.82" y1="73.66" x2="-73.66" y2="73.66" width="0.1524" layer="91"/>
 <label x="-76.2" y="73.66" size="1.778" layer="95"/>
+</segment>
+<segment>
+<pinref part="RPI_POWER" gate="-2" pin="S"/>
+<wire x1="5.08" y1="127" x2="-2.54" y2="127" width="0.1524" layer="91"/>
+<label x="-2.54" y="124.46" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="12V" class="0">
@@ -13845,28 +13863,28 @@ naming: grid - package width</description>
 </net>
 <net name="N$10" class="0">
 <segment>
-<pinref part="T3" gate="G1" pin="C"/>
-<pinref part="X3" gate="-2" pin="S"/>
+<pinref part="TO_MOTOR3" gate="G1" pin="C"/>
+<pinref part="MOTOR3" gate="-2" pin="S"/>
 <wire x1="106.68" y1="96.52" x2="106.68" y2="111.76" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$11" class="0">
 <segment>
-<pinref part="T2" gate="G1" pin="C"/>
-<pinref part="X2" gate="-2" pin="S"/>
+<pinref part="TO_MOTOR2" gate="G1" pin="C"/>
+<pinref part="MOTOR2" gate="-2" pin="S"/>
 <wire x1="99.06" y1="114.3" x2="99.06" y2="127" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$12" class="0">
 <segment>
-<pinref part="X1" gate="-2" pin="S"/>
-<pinref part="T1" gate="G1" pin="C"/>
+<pinref part="MOTOR1" gate="-2" pin="S"/>
+<pinref part="TO_MOTOR1" gate="G1" pin="C"/>
 <wire x1="88.9" y1="139.7" x2="88.9" y2="129.54" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$13" class="0">
 <segment>
-<pinref part="X7" gate="-2" pin="S"/>
+<pinref part="POWER_IN" gate="-2" pin="S"/>
 <pinref part="F2" gate="G$1" pin="1"/>
 <wire x1="-119.38" y1="111.76" x2="-99.06" y2="111.76" width="0.1524" layer="91"/>
 </segment>
@@ -13874,21 +13892,21 @@ naming: grid - package width</description>
 <net name="N$6" class="0">
 <segment>
 <pinref part="R10" gate="G$1" pin="1"/>
-<pinref part="T1" gate="G1" pin="B"/>
+<pinref part="TO_MOTOR1" gate="G1" pin="B"/>
 <wire x1="76.2" y1="124.46" x2="83.82" y2="124.46" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$14" class="0">
 <segment>
 <pinref part="R9" gate="G$1" pin="1"/>
-<pinref part="T2" gate="G1" pin="B"/>
+<pinref part="TO_MOTOR2" gate="G1" pin="B"/>
 <wire x1="81.28" y1="109.22" x2="93.98" y2="109.22" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$15" class="0">
 <segment>
 <pinref part="R6" gate="G$1" pin="1"/>
-<pinref part="T3" gate="G1" pin="B"/>
+<pinref part="TO_MOTOR3" gate="G1" pin="B"/>
 <wire x1="86.36" y1="91.44" x2="101.6" y2="91.44" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -13930,15 +13948,15 @@ naming: grid - package width</description>
 </net>
 <net name="N$7" class="0">
 <segment>
-<pinref part="X2" gate="-1" pin="S"/>
-<pinref part="X1" gate="-1" pin="S"/>
+<pinref part="MOTOR2" gate="-1" pin="S"/>
+<pinref part="MOTOR1" gate="-1" pin="S"/>
 <wire x1="88.9" y1="154.94" x2="88.9" y2="149.86" width="0.1524" layer="91"/>
 <wire x1="88.9" y1="149.86" x2="88.9" y2="142.24" width="0.1524" layer="91"/>
 <junction x="88.9" y="149.86"/>
 <wire x1="88.9" y1="149.86" x2="99.06" y2="149.86" width="0.1524" layer="91"/>
 <wire x1="99.06" y1="149.86" x2="99.06" y2="129.54" width="0.1524" layer="91"/>
 <junction x="99.06" y="149.86"/>
-<pinref part="X3" gate="-1" pin="S"/>
+<pinref part="MOTOR3" gate="-1" pin="S"/>
 <wire x1="106.68" y1="114.3" x2="106.68" y2="149.86" width="0.1524" layer="91"/>
 <wire x1="106.68" y1="149.86" x2="99.06" y2="149.86" width="0.1524" layer="91"/>
 <label x="88.9" y="154.94" size="1.778" layer="95" rot="R90"/>
@@ -13951,7 +13969,7 @@ naming: grid - package width</description>
 <label x="68.58" y="73.66" size="1.778" layer="95"/>
 </segment>
 <segment>
-<pinref part="X6" gate="-1" pin="S"/>
+<pinref part="I2C_BUS" gate="-1" pin="S"/>
 <wire x1="124.46" y1="73.66" x2="114.3" y2="73.66" width="0.1524" layer="91"/>
 <label x="114.3" y="73.66" size="1.778" layer="95"/>
 </segment>
@@ -13963,7 +13981,7 @@ naming: grid - package width</description>
 <label x="68.58" y="68.58" size="1.778" layer="95"/>
 </segment>
 <segment>
-<pinref part="X6" gate="-2" pin="S"/>
+<pinref part="I2C_BUS" gate="-2" pin="S"/>
 <wire x1="124.46" y1="71.12" x2="114.3" y2="71.12" width="0.1524" layer="91"/>
 <label x="114.3" y="68.58" size="1.778" layer="95"/>
 </segment>
