@@ -186,23 +186,29 @@ def checkpoints(depth_frame):
     
     return False
 
-def stop_moving(dist, depth_frame):
-    # Stop moving if an object is detected within 1.5 meters or if any of the 
-    # chekpoints are triggered
-    if (checkpoints(depth_frame)  or (dist < min_distance)):
-        return True    
-    
-    # If none of the conditions are met, keep moving
-    return False
+
 
 def navigate(frame, depth_frame, dist, left, right):
+    def stop_moving(dist, depth_frame, left, right):
+        # Stop moving if an object is detected within 1.5 meters or if any of the 
+        # chekpoints are triggered
+        if (checkpoints(depth_frame)  or (dist < min_distance)):
+            # If an object is close, but not in the users way, they can move forward
+            if((right < W//2-100) or (left > W//2+100)):
+                return False
+
+            return True    
+    
+        # If none of the conditions are met, keep moving
+        return False
+
     # Determine the midpoint of each detection and the distance between the object and 
     # the left and right borders of the frame
     midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
     
-    if stop_moving(dist, depth_frame):
+    if stop_moving(dist, depth_frame, left, right):
         # Stop moving for a bit while deciding what action to take
         command("Stop", frame)
         time.sleep(0.5)
