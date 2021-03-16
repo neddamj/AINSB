@@ -150,9 +150,7 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
             x1 = int(W*x1)
             y2 = int(H*y2)
             x2 = int(W*x2)
-
-            print("DETECTION")
-
+            
             # Add the midpoints to the midpoints list
             coords.append([x1, y1, x2, y2])
 
@@ -186,15 +184,13 @@ def checkpoints(depth_frame):
     
     return False
 
-
-
 def navigate(frame, depth_frame, dist, left, right):
     def stop_moving(dist, depth_frame, left, right):
         # Stop moving if an object is detected within 1.5 meters or if any of the 
         # chekpoints are triggered
         if (checkpoints(depth_frame)  or (dist < min_distance)):
             # If an object is close, but not in the users way, they can move forward
-            if((right < W//2-100) or (left > W//2+100)):
+            if((right < W//2-115) or (left > W//2+115)):
                 return False
 
             return True    
