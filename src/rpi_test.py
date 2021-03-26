@@ -148,14 +148,16 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
     return coordinates
 
 def command(val, frame):
-    # Send data to chip so that it can prvide feedback
-    send_feedback_command(val)
-    
-    # Display command on the screen
-    text = "Command: {}".format(val)
-    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
-    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-            0.5, (0, 0, 0), thickness=2)
+    # Do not send a command every frame
+    if numFrames % 2 == 0:
+        # Send data to chip so that it can provide feedback
+        #send_feedback_command(val)
+        
+        # Display command on the screen
+        text = "Command: {}".format(val)
+        cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
+        cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+                0.5, (0, 0, 0), thickness=2)
     
 def send_feedback_command(command):    
     if command == "Forward":
@@ -170,6 +172,7 @@ def send_feedback_command(command):
 def checkpoints(depth_frame):
     global checkpoint_detection
     checkpoint_detection = False
+    min_distance2 = 80
     W, H = 640, 480
 
     # Coordinates of the points to be checked in the frame
@@ -181,21 +184,31 @@ def checkpoints(depth_frame):
     l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
     
     # If any of the checkpoints are triggered raise a notification
-    if ((center < min_distance) or (left < min_distance) or (right < min_distance) or 
-        (l_center < min_distance) or (l_left < min_distance) or (l_right < min_distance)):
+    if ((center < min_distance2) or (left < min_distance2) or (right < min_distance2) or 
+        (l_center < min_distance2) or (l_left < min_distance2) or (l_right < min_distance2)):
         checkpoint_detection = True
         return True
     
     return False
 
 def stop_moving(dist, depth_frame):
-    # Stop moving if an object is detected within 1.5 meters or if any of the 
+    # Stop moving if an object is detected within 1.2 meters or if any of the 
     # chekpoints are triggered
-    if (checkpoints(depth_frame)  or (dist < min_distance)):
+    if (dist < min_distance):
         return True    
     
     # If none of the conditions are met, keep moving
     return False
+
+def check_checkpoints(frame, depth_frame):
+    # If a checkpoint is triggered, turn until it is no longer triggered
+    if checkpoints(depth_frame):
+        command("Stop", frame)
+        
+        '''
+            TODO: Write code that guides the user until the checkpoints
+                  are no longer triggered
+        '''
 
 def navigate(frame, depth_frame, dist, left, right):
     # Determine the midpoint of each detection and the distance between the object and 
@@ -204,18 +217,21 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_left = left - 0
     dist_right = 640 - right
     
+    check_checkpoints(frame, depth_frame)
+    
     if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take
         command("Stop", frame)
-        time.sleep(0.5)
+        print("0")
 
-        if dist_left > dist_right:
-            command("Left", frame)
-        elif dist_right > dist_left:
+        if dist_right > dist_left:
             command("Right", frame)
+        else:
+            command("Left", frame)
     else:
         # Move forward
         command("Forward", frame)
+        print("1")
 
 if __name__ == "__main__":
     # Declare relevant constants
@@ -234,6 +250,7 @@ if __name__ == "__main__":
     # Declare variables and constants for navigation
     checkpoint_detection = False
     min_distance = 120
+    numFrames = 0
 
     # Load TF Lite model
     print('[INFO] loading model...')
@@ -287,6 +304,13 @@ if __name__ == "__main__":
         # Visualize the detections
         visualize_boxes(frame, boxes, scores, classes, imH, imW)
         
+        '''
+            TODO: Make it so that the bb coordinates are sorted based on their distance
+                  from the user. Then the closest detection will be processed 1st and
+                  the system will not make predictions based on detections that are farther
+                  away from the user.
+        '''
+        
         points = get_bb_coordinates(boxes, scores, imH, imW)
         for point in points:
             # Extract the bounding box coordinates 
@@ -312,12 +336,14 @@ if __name__ == "__main__":
             navigate(frame, depth_frame, dist, startX, endX)
 
         if not checkpoint_detection:
-            if checkpoints(depth_frame):
-                command("Stop", frame)
-            else:
-                command("Forward", frame)
+            check_checkpoints(frame, depth_frame)
+            
+            command("Forward", frame)
 
         checkpoint_detection = False
+        
+        # Increment the frame counter
+        numFrames += 1
                 
         # All the results have been drawn on the frame, so it's time to display it.
         cv2.imshow('Object Detector', frame)
