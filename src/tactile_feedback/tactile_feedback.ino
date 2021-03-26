@@ -31,7 +31,16 @@ void setup() {
   pinMode(R, OUTPUT);
 }
 
-void loop(){}
+void loop(){
+  forward();
+  delay(1000);
+  turnLeft();
+  delay(1000);  
+  turnRight();
+  delay(1000);
+  stopMoving();
+  delay(1000);
+}
 
 void receiveEvent(int howMany){
    while(Wire.available()){
@@ -43,16 +52,22 @@ void receiveEvent(int howMany){
 
 void forward(){
   digitalWrite(F, HIGH);
+  digitalWrite(L, LOW);
+  digitalWrite(R, LOW);
   Serial.println("Go Forward");
 }
 
 void turnLeft(){
   digitalWrite(L, HIGH);
+  digitalWrite(F, LOW);
+  digitalWrite(R, LOW);
   Serial.println("Turn Left");
 }
 
 void turnRight(){
   digitalWrite(R, HIGH);
+  digitalWrite(L, LOW);
+  digitalWrite(F, LOW);
   Serial.println("Turn Right");
 }
 
