@@ -8,7 +8,6 @@
  *               they should move in or whether they should move at all.
  */
 
-#include <Arduino.h>
 #include <Wire.h>
 
 #define F A1
@@ -20,7 +19,7 @@ void setup() {
   Serial.begin(9600);
   
   // Join the I2C bus as a slave device
-  Wire.begin(0x08);
+  Wire.begin(0x8);
 
   // Call receive event when data is received
   Wire.onReceive(receiveEvent);
@@ -32,14 +31,7 @@ void setup() {
 }
 
 void loop(){
-  forward();
-  delay(1000);
-  turnLeft();
-  delay(1000);  
-  turnRight();
-  delay(1000);
-  stopMoving();
-  delay(1000);
+  delay(50);
 }
 
 void receiveEvent(int howMany){
