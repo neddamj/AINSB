@@ -93,10 +93,10 @@ def detect(input_data, input_details, output_details):
 
 def visualize_boxes(frame, boxes, scores, classes, H, W):
     # Get the bounding box coordinates
-    coordinates = get_bb_coordinates(boxes, scores, H, W)
+    coordinates = get_object_info(boxes, scores, H, W)
     i = 0
     
-    for coordinate in coordinates:
+    for coordinate in coordinates[1]:
         # Get the bounding box coordinates
         x1, y1, x2, y2 = coordinate
 
@@ -111,7 +111,7 @@ def filter_distance(depth_frame, x, y):
     i = 0
     while(i < 75):
         # Extract the depth value from the camera
-        dist = int(depth_frame.get_distance(x, y)*100)
+        dist = int(depth_frame.get_distance(x, y) * 100)
         
         # Store the last positive value for use in the event that the
         # value returned is 0
@@ -151,7 +151,7 @@ def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
             distance = filter_distance(depth_frame, midX, midY)
 
             # Add the coordinates to the coordinate list and the 
-            object_info.append(distance, (x1, y1, x2, y2))
+            object_info.append([distance, (x1, y1, x2, y2)])
 
     # Sort the data points by distance
     object_info.sort()

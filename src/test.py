@@ -137,9 +137,10 @@ def filter_distance(depth_frame, x, y):
     distances = np.asarray(distances)
     return int(distances.mean()) 
 
-def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
-    # Initialize list to store midpoints of each bounding box
-    coords = []
+def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
+    # Initialize list to store bounding box coordinates of each bounding box
+    # and the distance of each block
+    object_info = []
 
     for detection, score in zip(detections, scores):
         # Only move forward if score is above the threshold
@@ -150,11 +151,21 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
             x1 = int(W*x1)
             y2 = int(H*y2)
             x2 = int(W*x2)
-            
-            # Add the midpoints to the midpoints list
-            coords.append([x1, y1, x2, y2])
 
-    return coords
+            # Get the midpoint of each bounding box
+            midX = (x1 + x2)//2
+            midY = (y1 + y2)//2
+
+            # Find the distance of each point
+            distance = filter_distance(depth_frame, midX, midY)
+
+            # Add the coordinates to the coordinate list and the 
+            object_info.append([distance, (x1, y1, x2, y2)])
+
+    # Sort the data points by distance
+    object_info.sort()
+
+    return object_info
 
 def command(val, frame):
     # Display the command on the screen
@@ -166,6 +177,7 @@ def command(val, frame):
 def checkpoints(depth_frame):
     global checkpoint_detection
     checkpoint_detection = False
+    min_distance2 = 80
     W, H = 640, 480
 
     # Coordinates of the points to be checked in the frame
@@ -177,22 +189,18 @@ def checkpoints(depth_frame):
     l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
     
     # If any of the checkpoints are triggered raise a notification
-    if ((center < min_distance) or (left < min_distance) or (right < min_distance) or 
-        (l_center < min_distance) or (l_left < min_distance) or (l_right < min_distance)):
+    if ((center < min_distance2) or (left < min_distance2) or (right < min_distance2) or 
+        (l_center < min_distance2) or (l_left < min_distance2) or (l_right < min_distance2)):
         checkpoint_detection = True
         return True
     
     return False
 
 def navigate(frame, depth_frame, dist, left, right):
-    def stop_moving(dist, depth_frame, left, right):
-        # Stop moving if an object is detected within 1.5 meters or if any of the 
+    def stop_moving(dist, depth_frame):
+        # Stop moving if an object is detected within 1.2 meters or if any of the 
         # chekpoints are triggered
-        if (checkpoints(depth_frame)  or (dist < min_distance)):
-            # If an object is close, but not in the users way, they can move forward
-            if((right < W//2-115) or (left > W//2+115)):
-                return False
-
+        if (dist < min_distance):
             return True    
     
         # If none of the conditions are met, keep moving
@@ -200,11 +208,10 @@ def navigate(frame, depth_frame, dist, left, right):
 
     # Determine the midpoint of each detection and the distance between the object and 
     # the left and right borders of the frame
-    midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
     
-    if stop_moving(dist, depth_frame, left, right):
+    if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take
         command("Stop", frame)
         time.sleep(0.5)
@@ -277,6 +284,7 @@ if __name__ == "__main__":
     # Start the video stream
     print("[INFO] starting video stream...")
     vs = RealSenseVideo(width=640, height=480).start()
+    time.sleep(1)
 
     try:
         while True:
@@ -298,6 +306,8 @@ if __name__ == "__main__":
             frame = color_image 
             color_image = np.expand_dims(color_image, axis=0)
             input_tensor = tf.convert_to_tensor(color_image, dtype=tf.float32)
+
+            # Run the object detection and get the results
             (detections, predictions_dict, shapes) = detect(input_tensor)
 
             label_id_offset = 1
@@ -317,18 +327,18 @@ if __name__ == "__main__":
             # Convert the detections and their respective scores from numpy arrays to lists
             DETECTIONS = detections['detection_boxes'][0].numpy().tolist()
             SCORES = detections['detection_scores'][0].numpy().tolist()
-            points = get_bb_coordinates(DETECTIONS, SCORES, H, W)
+            points = get_object_info(depth_frame, DETECTIONS, SCORES, H, W)
+            print(points)
+            time.sleep(2)
 
             for point in points:
-                # Extract the bounding box coordinates 
-                x1, y1, x2, y2 = point
+                # Extract the bounding box coordinates and distance of each detection
+                dist, coords = point
+                x1, y1, x2, y2 = coords
                 
                 # Find the mid-point coordinates
                 midX = (x1+x2)//2
                 midY = (y1+y2)//2
-
-                # Find the distance of each point
-                dist = filter_distance(depth_frame, midX, midY)
 
                 # Draw a circle at the midpoint for visual validation
                 cv2.circle(frame, (midX, midY), radius=5, 
