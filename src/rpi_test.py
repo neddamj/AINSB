@@ -128,9 +128,10 @@ def filter_distance(depth_frame, x, y):
     distances = np.asarray(distances)
     return int(distances.mean())
 
-def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
+def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
     # Initialize list to store bounding box coordinates of each bounding box
-    coordinates = []
+    # and the distance of each block
+    object_info = []
 
     for detection, score in zip(detections, scores):
         # Only move forward if score is above the threshold
@@ -142,10 +143,20 @@ def get_bb_coordinates(detections, scores, H, W, confidence=0.5):
             y2 = int(H*y2)
             x2 = int(W*x2)
 
-            # Add the coordinates to the coordinate list
-            coordinates.append([x1, y1, x2, y2])
+            # Get the midpoint of each bounding box
+            midX = (x1 + x2)//2
+            midY = (y1 + y2)//2
 
-    return coordinates
+            # Find the distance of each point
+            distance = filter_distance(depth_frame, midX, midY)
+
+            # Add the coordinates to the coordinate list and the 
+            object_info.append(distance, (x1, y1, x2, y2))
+
+    # Sort the data points by distance
+    object_info.sort()
+
+    return object_info
 
 def command(val, frame):
     # Do not send a command every frame
@@ -204,16 +215,16 @@ def check_checkpoints(frame, depth_frame):
     # If a checkpoint is triggered, turn until it is no longer triggered
     if checkpoints(depth_frame):
         command("Stop", frame)
-        
         '''
             TODO: Write code that guides the user until the checkpoints
                   are no longer triggered
         '''
+    else:
+        command("Forward", frame)      
 
 def navigate(frame, depth_frame, dist, left, right):
-    # Determine the midpoint of each detection and the distance between the object and 
+    # Determine the distance between the object and 
     # the left and right borders of the frame
-    midX = (left+right)//2
     dist_left = left - 0
     dist_right = 640 - right
     
@@ -222,7 +233,6 @@ def navigate(frame, depth_frame, dist, left, right):
     if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take
         command("Stop", frame)
-        print("0")
 
         if dist_right > dist_left:
             command("Right", frame)
@@ -231,7 +241,6 @@ def navigate(frame, depth_frame, dist, left, right):
     else:
         # Move forward
         command("Forward", frame)
-        print("1")
 
 if __name__ == "__main__":
     # Declare relevant constants
@@ -255,9 +264,7 @@ if __name__ == "__main__":
     # Load TF Lite model
     print('[INFO] loading model...')
     start_time = time.time()
-
-    interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)
-    
+    interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)    
     end_time = time.time()
     elapsed_time = end_time - start_time
     print('Done! Took {} seconds'.format(elapsed_time))
@@ -309,19 +316,19 @@ if __name__ == "__main__":
                   from the user. Then the closest detection will be processed 1st and
                   the system will not make predictions based on detections that are farther
                   away from the user.
+                  Check if a reliable prediction can be made based on only the object closest 
+                  to the user
         '''
         
-        points = get_bb_coordinates(boxes, scores, imH, imW)
+        points = get_object_info(depth_frame, boxes, scores, imH, imW)        
         for point in points:
-            # Extract the bounding box coordinates 
-            startX, startY, endX, endY = point
+            # Extract the distance and bounding box coordinates 
+            dist, coords = point
+            startX, startY, endX, endY = coords
             
             # Find the midpoint coordinates
             midX = (startX+endX)//2
             midY = (startY+endY)//2
-            
-            # Find the distance at each point
-            dist = filter_distance(depth_frame, midX, midY)
             
             # Draw a circle at the midpoint for visual validation
             cv2.circle(frame, (midX, midY), radius=5, 
@@ -338,8 +345,6 @@ if __name__ == "__main__":
         if not checkpoint_detection:
             check_checkpoints(frame, depth_frame)
             
-            command("Forward", frame)
-
         checkpoint_detection = False
         
         # Increment the frame counter
