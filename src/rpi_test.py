@@ -91,12 +91,12 @@ def detect(input_data, input_details, output_details):
 
     return (boxes, classes, scores)
 
-def visualize_boxes(frame, boxes, scores, classes, H, W):
+def visualize_boxes(frame, depth_frame, boxes, scores, classes, H, W):
     # Get the bounding box coordinates
-    coordinates = get_object_info(boxes, scores, H, W)
+    coordinates = get_object_info(depth_frame, boxes, scores, H, W)
     i = 0
     
-    for coordinate in coordinates[1]:
+    for dist,  coordinate in coordinates:
         # Get the bounding box coordinates
         x1, y1, x2, y2 = coordinate
 
@@ -166,6 +166,7 @@ def command(val, frame):
         
         # Display command on the screen
         text = "Command: {}".format(val)
+        print(text)
         cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
         cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
                 0.5, (0, 0, 0), thickness=2)
@@ -211,7 +212,7 @@ def stop_moving(dist, depth_frame):
     # If none of the conditions are met, keep moving
     return False
 
-def check_checkpoints(frame, depth_frame):
+def check_checkpoints(frame, depth_frame, in_nav):
     # If a checkpoint is triggered, turn until it is no longer triggered
     if checkpoints(depth_frame):
         command("Stop", frame)
@@ -220,7 +221,8 @@ def check_checkpoints(frame, depth_frame):
                   are no longer triggered
         '''
     else:
-        command("Forward", frame)      
+        if in_nav is False and detections is False:
+            command("Forward", frame)      
 
 def navigate(frame, depth_frame, dist, left, right):
     # Determine the distance between the object and 
@@ -228,10 +230,13 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_left = left - 0
     dist_right = 640 - right
     
-    check_checkpoints(frame, depth_frame)
+    check_checkpoints(frame, depth_frame, True)
     
     if stop_moving(dist, depth_frame):
-        # Stop moving for a bit while deciding what action to take
+        # Stop moving for a bit while deciding what action to take and note
+        # that there are significant detections
+        global detections
+        detections = True
         command("Stop", frame)
 
         if dist_right > dist_left:
@@ -258,6 +263,7 @@ if __name__ == "__main__":
 
     # Declare variables and constants for navigation
     checkpoint_detection = False
+    detections = False
     min_distance = 120
     numFrames = 0
 
@@ -309,16 +315,7 @@ if __name__ == "__main__":
         boxes, classes, scores = detect(input_data, input_details, output_details)
          
         # Visualize the detections
-        visualize_boxes(frame, boxes, scores, classes, imH, imW)
-        
-        '''
-            TODO: Make it so that the bb coordinates are sorted based on their distance
-                  from the user. Then the closest detection will be processed 1st and
-                  the system will not make predictions based on detections that are farther
-                  away from the user.
-                  Check if a reliable prediction can be made based on only the object closest 
-                  to the user
-        '''
+        visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         
         points = get_object_info(depth_frame, boxes, scores, imH, imW)        
         for point in points:
@@ -341,11 +338,13 @@ if __name__ == "__main__":
 
             # Determine what command to give to the user
             navigate(frame, depth_frame, dist, startX, endX)
+            break
 
         if not checkpoint_detection:
-            check_checkpoints(frame, depth_frame)
+            check_checkpoints(frame, depth_frame, False)
             
         checkpoint_detection = False
+        detections = False
         
         # Increment the frame counter
         numFrames += 1
