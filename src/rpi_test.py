@@ -313,12 +313,17 @@ if __name__ == "__main__":
         
         # Run the object detection and get the results
         boxes, classes, scores = detect(input_data, input_details, output_details)
+
+        # Variable to track the number of detections that are processed
+        detection_count = 0
          
-        # Visualize the detections
-        visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
-        
+        # Visualize the detections and extract coordinates and depth info for each frame
+        visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)        
         points = get_object_info(depth_frame, boxes, scores, imH, imW)        
         for point in points:
+            # Increment the counter for each detection that is processed
+            detection_count += 1
+
             # Extract the distance and bounding box coordinates 
             dist, coords = point
             startX, startY, endX, endY = coords
@@ -336,9 +341,9 @@ if __name__ == "__main__":
             cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.6, (0, 0, 255), thickness=2)
 
-            # Determine what command to give to the user
-            navigate(frame, depth_frame, dist, startX, endX)
-            break
+            # Determine what command to give to the user based on the closest object to the user
+            if (detection_count == 1):
+                navigate(frame, depth_frame, dist, startX, endX)
 
         if not checkpoint_detection:
             check_checkpoints(frame, depth_frame, False)
