@@ -230,7 +230,7 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_left = left - 0
     dist_right = 640 - right
     
-    check_checkpoints(frame, depth_frame, True)
+    #check_checkpoints(frame, depth_frame, True)
     
     if stop_moving(dist, depth_frame):
         # Stop moving for a bit while deciding what action to take and note

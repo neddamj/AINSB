@@ -196,14 +196,14 @@ def checkpoints(depth_frame):
     l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
     
     # If any of the checkpoints are triggered raise a notification
-    if ((center < min_distance2) or (left < min_distance2) or (right < min_distance2) or 
-        (l_center < min_distance2) or (l_left < min_distance2) or (l_right < min_distance2)):
+    if ((center < min_distance) or (left < min_distance) or (right < min_distance) or 
+        (l_center < min_distance) or (l_left < min_distance) or (l_right < min_distance)):
         checkpoint_detection = True
         return True
     
     return False
 
-def stop_moving(dist):
+def stop_moving(dist, depth_frame):
     # Stop moving if an object is detected within 1.2 meters or if any of the 
     # chekpoints are triggered
     if (dist < min_distance):
@@ -212,7 +212,7 @@ def stop_moving(dist):
     # If none of the conditions are met, keep moving
     return False
 
-def check_checkpoints(frame, depth_frame, in_nav):
+def check_checkpoints(frame, depth_frame):
     # If a checkpoint is triggered, turn until it is no longer triggered
     if checkpoints(depth_frame):
         command("Stop", frame)
@@ -221,7 +221,7 @@ def check_checkpoints(frame, depth_frame, in_nav):
                   are no longer triggered
         '''
     else:
-        if in_nav is False and detections is False:
+        if detections is False:
             command("Forward", frame)      
 
 def navigate(frame, depth_frame, dist, left, right):
@@ -230,14 +230,12 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_left = left - 0
     dist_right = 640 - right
     
-    check_checkpoints(frame, depth_frame, True)
-    
-    if stop_moving(dist):
+    if dist < min_distance:
         # Stop moving for a bit while deciding what action to take and note
         # that there are significant detections
         global detections
         detections = True
-        command("Stop", frame)
+        #command("Stop", frame)
 
         if dist_right > dist_left:
             command("Right", frame)
@@ -313,17 +311,12 @@ if __name__ == "__main__":
         
         # Run the object detection and get the results
         boxes, classes, scores = detect(input_data, input_details, output_details)
-
-        # Variable to track the number of detections that are processed
-        detection_count = 0
          
-        # Visualize the detections and extract coordinates and depth info for each frame
-        visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)        
+        # Visualize the detections
+        visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
+        
         points = get_object_info(depth_frame, boxes, scores, imH, imW)        
         for point in points:
-            # Increment the counter for each detection that is processed
-            detection_count += 1
-
             # Extract the distance and bounding box coordinates 
             dist, coords = point
             startX, startY, endX, endY = coords
@@ -341,12 +334,12 @@ if __name__ == "__main__":
             cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.6, (0, 0, 255), thickness=2)
 
-            # Determine what command to give to the user based on the closest object to the user
-            if (detection_count == 1):
-                navigate(frame, depth_frame, dist, startX, endX)
+            # Determine what command to give to the user
+            navigate(frame, depth_frame, dist, startX, endX)
+            break
 
-        if not checkpoint_detection:
-            check_checkpoints(frame, depth_frame, False)
+        if not checkpoint_detection and not detections:
+            check_checkpoints(frame, depth_frame)
             
         checkpoint_detection = False
         detections = False
@@ -371,4 +364,4 @@ if __name__ == "__main__":
         
     # Stop the video stream
     cv2.destroyAllWindows()
-    video.stop()
+    video.stop() 
