@@ -203,7 +203,7 @@ def checkpoints(depth_frame):
     
     return False
 
-def stop_moving(dist, depth_frame):
+def stop_moving(dist):
     # Stop moving if an object is detected within 1.2 meters or if any of the 
     # chekpoints are triggered
     if (dist < min_distance):
@@ -232,7 +232,7 @@ def navigate(frame, depth_frame, dist, left, right):
     
     check_checkpoints(frame, depth_frame, True)
     
-    if stop_moving(dist, depth_frame):
+    if stop_moving(dist):
         # Stop moving for a bit while deciding what action to take and note
         # that there are significant detections
         global detections
