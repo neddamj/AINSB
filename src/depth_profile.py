@@ -1,6 +1,6 @@
 '''
     Author: Jordan Madden
-    Usage: python hypothesis.py
+    Usage: python depth_profile.py
 '''
 
 import matplotlib.pyplot as plt
