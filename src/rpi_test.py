@@ -4,6 +4,7 @@
 '''
 
 import tflite_runtime.interpreter as tflite
+from depth_profile import get_depth_profile
 from realsense import RealSense
 from imutils.video import FPS
 from threading import Thread
