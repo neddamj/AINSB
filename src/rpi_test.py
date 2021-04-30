@@ -7,7 +7,6 @@ import tflite_runtime.interpreter as tflite
 from depth_profile import get_depth_profile
 from realsense import RealSense
 from imutils.video import FPS
-from threading import Thread
 from smbus import SMBus
 import importlib.util
 import numpy as np
@@ -15,7 +14,6 @@ import argparse
 import time
 import cv2
 import os
-import sys
 
 # Construct and parse the command line arguments 
 ap = argparse.ArgumentParser()
@@ -60,7 +58,7 @@ def filter_distance(depth_frame, x, y):
     positive = np.random.randint(low=30, high=100)
 
     i = 0
-    while(i < 50):
+    while(i < 75):
         # Extract the depth value from the camera
         dist = int(depth_frame.get_distance(x, y) * 100)
         
@@ -102,7 +100,7 @@ def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
             distance = filter_distance(depth_frame, midX, midY)
 
             # Add the coordinates to the coordinate list and the 
-            object_info.append([distance, (x1, y1, x2, y2)])
+            object_info.append((distance, (x1, y1, x2, y2)))
 
     # Sort the data points by distance
     object_info.sort()
@@ -154,16 +152,7 @@ def checkpoints(depth_frame):
     
     return False
 
-def stop_moving(dist, depth_frame):
-    # Stop moving if an object is detected within 1.2 meters or if any of the 
-    # chekpoints are triggered
-    if (dist < min_distance):
-        return True    
-    
-    # If none of the conditions are met, keep moving
-    return False
-
-def check_checkpoints(frame, depth_frame):
+def check_checkpoints(frame, depth_frame, in_nav):
     # If a checkpoint is triggered, turn until it is no longer triggered
     if checkpoints(depth_frame):
         command("Stop", frame)
@@ -172,7 +161,7 @@ def check_checkpoints(frame, depth_frame):
                   are no longer triggered
         '''
     else:
-        if detections is False:
+        if in_nav is False and detections is False:
             command("Forward", frame)      
 
 def navigate(frame, depth_frame, dist, left, right):
@@ -181,20 +170,34 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_left = left - 0
     dist_right = 640 - right
     
+    # Get the depth profile on either side of the object
+    profile_w = 100 
+    left_profile = get_depth_profile(depth_frame, profile_w, left-profile_w, midY)
+    right_profile = get_depth_profile(depth_frame, profile_w, right, midY)   
+            
+    # Draw line across the profiles
+    cv2.line(frame, (left-profile_w, midY), (left, midY), (0, 0, 255), thickness=2)
+    cv2.line(frame, (right, midY), (right+profile_w, midY), (0, 0, 255), thickness=2)
+    
     if dist < min_distance:
-        # Stop moving for a bit while deciding what action to take and note
-        # that there are significant detections
-        global detections
-        detections = True
-        #command("Stop", frame)
-
-        if dist_right > dist_left:
+        # If object is close to the left of the frame, turn right
+        # and vice versa
+        if left <= profile_w:
             command("Right", frame)
-        else:
+        elif right >= 640-profile_w:
             command("Left", frame)
+        else:
+            print("Left: {:.2f}\tRight: {:.2f}".format(left_profile.mean(), right_profile.mean()))
+            if int(left_profile.mean()) > int(right_profile.mean()):
+                command("Left", frame)
+            elif int(right_profile.mean()) > int(left_profile.mean()):
+                command("Right", frame)
+            
     else:
-        # Move forward
+        # Move forward if nothing is within the proximity
         command("Forward", frame)
+        
+    
 
 if __name__ == "__main__":
     # Declare relevant constants
@@ -211,9 +214,7 @@ if __name__ == "__main__":
     imW, imH = int(resW), int(resH)
 
     # Declare variables and constants for navigation
-    checkpoint_detection = False
-    detections = False
-    min_distance = 120
+    min_distance = 130
     numFrames = 0
 
     # Load TF Lite model
@@ -267,9 +268,8 @@ if __name__ == "__main__":
         visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         
         points = get_object_info(depth_frame, boxes, scores, imH, imW)        
-        for point in points:
-            # Extract the distance and bounding box coordinates 
-            dist, coords = point
+        for (dist, coords) in points:
+            # Extract the bounding box coordinates 
             startX, startY, endX, endY = coords
             
             # Find the midpoint coordinates
@@ -288,12 +288,6 @@ if __name__ == "__main__":
             # Determine what command to give to the user
             navigate(frame, depth_frame, dist, startX, endX)
             break
-
-        if not checkpoint_detection and not detections:
-            check_checkpoints(frame, depth_frame)
-            
-        checkpoint_detection = False
-        detections = False
         
         # Increment the frame counter
         numFrames += 1
