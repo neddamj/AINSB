@@ -27,7 +27,7 @@ class RealSense:
         self.frame = self.pipeline.wait_for_frames()
         self.depth_frame = self.frame.get_depth_frame()
         self.color_frame = self.frame.get_color_frame()
-
+        
         # Variable to check if thread should be stopped
         self.stopped = False
 
@@ -46,12 +46,22 @@ class RealSense:
             self.frame = self.pipeline.wait_for_frames()
             self.depth_frame = self.frame.get_depth_frame()
             self.color_frame = self.frame.get_color_frame()
+            
             if not self.depth_frame or not self.color_frame:
                 return
 
     def read(self):
         # Return the most recent color and depth frame
         return self.color_frame, self.depth_frame
+    
+    def filter_depth(self, depth):
+        # Apply post processing filters to depth image
+        spat_filter = rs.spatial_filter()
+        temp_filter = rs.temporal_filter()
+        depth = spat_filter.process(depth)
+        depth = temp_filter.process(depth)
+        
+        return depth.as_depth_frame()
 
     def stop(self)        :
         # Stop the video stream
