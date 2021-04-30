@@ -171,13 +171,14 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_right = 640 - right
     
     # Get the depth profile on either side of the object
-    profile_w = 100 
-    left_profile = get_depth_profile(depth_frame, profile_w, left-profile_w, midY)
-    right_profile = get_depth_profile(depth_frame, profile_w, right, midY)   
+    profile_w = 110
+    y_offset = 30
+    left_profile = get_depth_profile(depth_frame, profile_w, left-profile_w, midY+y_offset)
+    right_profile = get_depth_profile(depth_frame, profile_w, right, midY+y_offset)   
             
     # Draw line across the profiles
-    cv2.line(frame, (left-profile_w, midY), (left, midY), (0, 0, 255), thickness=2)
-    cv2.line(frame, (right, midY), (right+profile_w, midY), (0, 0, 255), thickness=2)
+    cv2.line(frame, (left-profile_w, midY+y_offset), (left, midY+y_offset), (0, 0, 255), thickness=2)
+    cv2.line(frame, (right, midY+y_offset), (right+profile_w, midY+y_offset), (0, 0, 255), thickness=2)
     
     if dist < min_distance:
         # If object is close to the left of the frame, turn right
@@ -195,9 +196,7 @@ def navigate(frame, depth_frame, dist, left, right):
             
     else:
         # Move forward if nothing is within the proximity
-        command("Forward", frame)
-        
-    
+        command("Forward", frame)    
 
 if __name__ == "__main__":
     # Declare relevant constants
