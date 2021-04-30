@@ -3,16 +3,19 @@
     Usage: python rpi_test.py --model="v1" 
 '''
 
+# Import machine learning/numerical computing libs
 import tflite_runtime.interpreter as tflite
 from depth_profile import get_depth_profile
 from realsense import RealSense
 from imutils.video import FPS
+import numpy as np
+import cv2
+
+# Import general purpose libraries
 from smbus import SMBus
 import importlib.util
-import numpy as np
 import argparse
 import time
-import cv2
 import os
 
 # Construct and parse the command line arguments 
@@ -153,14 +156,11 @@ def checkpoints(depth_frame):
     return False
 
 def check_checkpoints(frame, depth_frame, in_nav):
-    # If a checkpoint is triggered, turn until it is no longer triggered
     if checkpoints(depth_frame):
+        # If a checkpoint is triggered then stop moving
         command("Stop", frame)
-        '''
-            TODO: Write code that guides the user until the checkpoints
-                  are no longer triggered
-        '''
     else:
+        # If no checkpoint is triggered then move forward
         if in_nav is False and detections is False:
             command("Forward", frame)      
 
@@ -181,19 +181,26 @@ def navigate(frame, depth_frame, dist, left, right):
     cv2.line(frame, (right, midY+y_offset), (right+profile_w, midY+y_offset), (0, 0, 255), thickness=2)
     
     if dist < min_distance:
-        # If object is close to the left of the frame, turn right
-        # and vice versa
         if left <= profile_w:
+            # If object is close to the left of the frame, turn right
             command("Right", frame)
         elif right >= 640-profile_w:
+            # If object is close to the right of the frame, turn left
             command("Left", frame)
+        elif ((right <= profile_w) or (left >= 640-profile_w)):
+            # If the object is far to the right or left of the screen
+            # (out of the way of the user) allow the user to go forward
+            command("Forward", frame)
         else:
             print("Left: {:.2f}\tRight: {:.2f}".format(left_profile.mean(), right_profile.mean()))
             if int(left_profile.mean()) > int(right_profile.mean()):
+                # If the depth profile to the left of the object if deeper
+                # than the profile on the right, then turn left
                 command("Left", frame)
             elif int(right_profile.mean()) > int(left_profile.mean()):
-                command("Right", frame)
-            
+                # If the depth profile to the right of the object if deeper
+                # than the profile on the left, then turn right
+                command("Right", frame)            
     else:
         # Move forward if nothing is within the proximity
         command("Forward", frame)    
@@ -283,7 +290,12 @@ if __name__ == "__main__":
             text = "Distance: {}cm".format(dist)
             cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.6, (0, 0, 255), thickness=2)
-
+            
+            # Draw lines for validation
+            cv2.line(frame, (100, 100), (100, 400), (255, 0, 255), thickness=2)
+            cv2.line(frame, (540, 100), (540, 400), (255, 0, 255), thickness=2)
+            
+            
             # Determine what command to give to the user
             navigate(frame, depth_frame, dist, startX, endX)
             break

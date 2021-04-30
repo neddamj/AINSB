@@ -70,7 +70,7 @@ if __name__ == "__main__":
         #depth = depth_image[100:500,240:240].astype(float)*depth_scale
         
         # Get the depth profile as a array
-        pts = get_depth_profile(depth_frame, 500, 350, 240)
+        pts = get_depth_profile(depth_frame, 500, 100, 240)
         
         # Plot the depth profile on a graph
         print(pts)
