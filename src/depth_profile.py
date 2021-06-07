@@ -35,24 +35,22 @@ def filter_distance(depth_frame, x, y):
     distances = np.asarray(distances)
     return int(distances.mean())
 
-def get_depth_profile(depth_frame, profile_width, midX, midY):
-    # Ensure the pixels we check all lie within the horizontal bounds of the frame
-    if (midX <= profile_width//2):
-        midX = 0
-    elif (midX >= (640 - profile_width//2)):
-        midX = 640 - profile_width
-    else:
-        midX = midX
-
+def get_depth_profile(depth_frame, profile_width, X, Y):
+    # Ensure the coordiantes fall within the frame
+    if (profile_width >= X):
+        profile_width = X
+    elif (profile_width >= 640-X):
+        profile_width = 640-X
+    
     # Array to store the depth profile
     depth_profile = []
 
     # Get distance of each pixel along the profile width and add it to 
     # the depth profile list
     for i in range(profile_width):
-        depth_profile.append(filter_distance(depth_frame, (midX-(profile_width//2))+i, midY-50))
+        depth_profile.append(filter_distance(depth_frame, X+i, Y))
 
-    return depth_profile
+    return np.array(depth_profile)
 
 if __name__ == "__main__":
     video = RealSense(width=640, height=480).start()
