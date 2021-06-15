@@ -3,9 +3,9 @@
     Usage: python rpi_test.py --model="v1" 
 '''
 
+from realsense import RealSense, filter_distance
 import tflite_runtime.interpreter as tflite
 from depth_profile import get_depth_profile
-from realsense import RealSense
 from imutils.video import FPS
 from smbus import SMBus
 import importlib.util
@@ -51,31 +51,6 @@ def visualize_boxes(frame, depth_frame, boxes, scores, classes, H, W):
 
         # Draw bounding box
         cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
-
-def filter_distance(depth_frame, x, y):
-    #List to store the consecutive distance values and randomly initialized variable
-    distances = []
-    positive = np.random.randint(low=30, high=100)
-
-    i = 0
-    while(i < 75):
-        # Extract the depth value from the camera
-        dist = int(depth_frame.get_distance(x, y) * 100)
-        
-        # Store the last positive value for use in the event that the
-        # value returned is 0
-        if dist != 0:
-            positive = dist
-        elif dist == 0:
-            positive == positive
-
-        # Add the distances to the list
-        distances.append(positive)
-        i += 1
-
-    # Convert the list to a numpy array and return it
-    distances = np.asarray(distances)
-    return int(distances.mean())
 
 def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
     # Initialize list to store bounding box coordinates of each bounding box
