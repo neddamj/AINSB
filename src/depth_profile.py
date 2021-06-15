@@ -50,6 +50,9 @@ if __name__ == "__main__":
         # Plot the depth profile on a graph
         print(pts)
         plt.plot(pts)
+        plt.xlabel("Position/pixel")
+        plt.ylabel("Distance/cm")
+        plt.title("Depth Profile (Depth v Position)")
         plt.show()
         
         # All the results have been drawn on the frame, so it's time to display it.
@@ -67,10 +70,4 @@ if __name__ == "__main__":
     
     # Stop the video stream
     cv2.destroyAllWindows()
-    video.stop() 
-        
-        
-        
-        
-        
-        
+    video.stop()    
