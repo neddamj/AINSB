@@ -1,6 +1,6 @@
 '''
     Author: Jordan Madden
-    Usage: python rpi_test.py --model="v1" 
+    Usage: python main.py  
 '''
 
 from realsense import RealSense, filter_distance
@@ -86,7 +86,10 @@ def command(val, frame):
     # Do not send a command every frame
     if numFrames % 2 == 0:
         # Send data to chip so that it can provide feedback
-        #send_feedback_command(val)
+        try:
+            send_feedback_command(val)
+        except:
+            print("Remote IOError: No I2C/TWI connection is present")
         
         # Display command on the screen
         text = "Command: {}".format(val)
