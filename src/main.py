@@ -1,12 +1,12 @@
 '''
     Author: Jordan Madden
-    Usage: python rpi_test.py --model="v1" 
+    Usage: python main.py  
 '''
 
+from realsense import RealSense, filter_distance
 import tflite_runtime.interpreter as tflite
-import pyrealsense2.pyrealsense2 as rs
+from depth_profile import get_depth_profile
 from imutils.video import FPS
-from threading import Thread
 from smbus import SMBus
 import importlib.util
 import numpy as np
@@ -14,7 +14,6 @@ import argparse
 import time
 import cv2
 import os
-import sys
 
 # Construct and parse the command line arguments 
 ap = argparse.ArgumentParser()
@@ -29,56 +28,6 @@ args = vars(ap.parse_args())
 # Set the bus address and indicate I2C-1
 addr = 0x08
 bus = SMBus(1)
-
-class RealSenseVideo:
-    def __init__(self, width=640, height=480):
-        # Frame dimensions of camera
-        self.width = width
-        self.height = height
-
-        # Build and enable the depth and color frames
-        self.pipeline = rs.pipeline()
-        self.config = rs.config()
-        self.config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
-        self.config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
-
-        # Start streaming
-        self.pipeline.start(self.config)
-        
-        # Read the first frame from the stream
-        self.frame = self.pipeline.wait_for_frames()
-        self.depth_frame = self.frame.get_depth_frame()
-        self.color_frame = self.frame.get_color_frame()
-
-        # Variable to check if thread should be stopped
-        self.stopped = False
-
-    def start(self):
-        # Start the thread to read the frames from the video stream
-        Thread(target=self.update, args=()).start()
-        return self
-
-    def update(self):
-        while True:
-            # Stop streaming in indicator is set
-            if self.stopped:
-                return
-
-            # Otherwise read the next frame in the stream
-            self.frame = self.pipeline.wait_for_frames()
-            self.depth_frame = self.frame.get_depth_frame()
-            self.color_frame = self.frame.get_color_frame()
-            if not self.depth_frame or not self.color_frame:
-                return
-
-    def read(self):
-        # Return the most recent color and depth frame
-        return self.color_frame, self.depth_frame
-
-    def stop(self)        :
-        # Stop the video stream
-        self.stopped = True
-        self.pipeline.stop()
 
 def detect(input_data, input_details, output_details):
     # Perform the object detection and get the results
@@ -103,39 +52,14 @@ def visualize_boxes(frame, depth_frame, boxes, scores, classes, H, W):
         # Draw bounding box
         cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
 
-def filter_distance(depth_frame, x, y):
-    #List to store the consecutive distance values and randomly initialized variable
-    distances = []
-    positive = np.random.randint(low=30, high=100)
-
-    i = 0
-    while(i < 75):
-        # Extract the depth value from the camera
-        dist = int(depth_frame.get_distance(x, y) * 100)
-        
-        # Store the last positive value for use in the event that the
-        # value returned is 0
-        if dist != 0:
-            positive = dist
-        elif dist == 0:
-            positive == positive
-
-        # Add the distances to the list
-        distances.append(positive)
-        i += 1
-
-    # Convert the list to a numpy array and return it
-    distances = np.asarray(distances)
-    return int(distances.mean())
-
-def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
+def get_object_info(depth_frame, detections, scores, H, W):
     # Initialize list to store bounding box coordinates of each bounding box
     # and the distance of each block
     object_info = []
 
     for detection, score in zip(detections, scores):
         # Only move forward if score is above the threshold
-        if score > confidence:
+        if score > CONFIDENCE_THRESH:
             # Extract the coordinates of the detections and normalize each detection
             y1, x1, y2, x2 = detection
             y1 = int(H*y1)
@@ -151,7 +75,7 @@ def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
             distance = filter_distance(depth_frame, midX, midY)
 
             # Add the coordinates to the coordinate list and the 
-            object_info.append([distance, (x1, y1, x2, y2)])
+            object_info.append((distance, (x1, y1, x2, y2)))
 
     # Sort the data points by distance
     object_info.sort()
@@ -162,7 +86,10 @@ def command(val, frame):
     # Do not send a command every frame
     if numFrames % 2 == 0:
         # Send data to chip so that it can provide feedback
-        #send_feedback_command(val)
+        try:
+            send_feedback_command(val)
+        except:
+            print("Remote IOError: No I2C/TWI connection is present")
         
         # Display command on the screen
         text = "Command: {}".format(val)
@@ -196,33 +123,12 @@ def checkpoints(depth_frame):
     l_left = filter_distance(depth_frame, W//2 - 60, H//2 + 180)
     
     # If any of the checkpoints are triggered raise a notification
-    if ((center < min_distance2) or (left < min_distance2) or (right < min_distance2) or 
-        (l_center < min_distance2) or (l_left < min_distance2) or (l_right < min_distance2)):
+    if ((center < min_distance) or (left < min_distance) or (right < min_distance) or 
+        (l_center < min_distance) or (l_left < min_distance) or (l_right < min_distance)):
         checkpoint_detection = True
         return True
     
-    return False
-
-def stop_moving(dist, depth_frame):
-    # Stop moving if an object is detected within 1.2 meters or if any of the 
-    # chekpoints are triggered
-    if (dist < min_distance):
-        return True    
-    
-    # If none of the conditions are met, keep moving
-    return False
-
-def check_checkpoints(frame, depth_frame, in_nav):
-    # If a checkpoint is triggered, turn until it is no longer triggered
-    if checkpoints(depth_frame):
-        command("Stop", frame)
-        '''
-            TODO: Write code that guides the user until the checkpoints
-                  are no longer triggered
-        '''
-    else:
-        if in_nav is False and detections is False:
-            command("Forward", frame)      
+    return False     
 
 def navigate(frame, depth_frame, dist, left, right):
     # Determine the distance between the object and 
@@ -230,22 +136,33 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_left = left - 0
     dist_right = 640 - right
     
-    #check_checkpoints(frame, depth_frame, True)
+    # Get the depth profile on either side of the object
+    profile_w = 110
+    y_offset = 30
+    left_profile = get_depth_profile(depth_frame, profile_w, left-profile_w, midY+y_offset)
+    right_profile = get_depth_profile(depth_frame, profile_w, right, midY+y_offset)   
+            
+    # Draw line across the profiles
+    cv2.line(frame, (left-profile_w, midY+y_offset), (left, midY+y_offset), (0, 0, 255), thickness=2)
+    cv2.line(frame, (right, midY+y_offset), (right+profile_w, midY+y_offset), (0, 0, 255), thickness=2)
     
-    if stop_moving(dist, depth_frame):
-        # Stop moving for a bit while deciding what action to take and note
-        # that there are significant detections
-        global detections
-        detections = True
-        command("Stop", frame)
-
-        if dist_right > dist_left:
+    if dist < min_distance:
+        # If object is close to the left of the frame, turn right
+        # and vice versa
+        if left <= profile_w:
             command("Right", frame)
-        else:
+        elif right >= 640-profile_w:
             command("Left", frame)
+        else:
+            print("Left: {:.2f}\tRight: {:.2f}".format(left_profile.mean(), right_profile.mean()))
+            if int(left_profile.mean()) > int(right_profile.mean()):
+                command("Left", frame)
+            elif int(right_profile.mean()) > int(left_profile.mean()):
+                command("Right", frame)
+            
     else:
-        # Move forward
-        command("Forward", frame)
+        # Move forward if nothing is within the proximity
+        command("Forward", frame)    
 
 if __name__ == "__main__":
     # Declare relevant constants
@@ -255,16 +172,14 @@ if __name__ == "__main__":
         model_path = '/home/pi/tflite/model.tflite'
         
     PATH_TO_MODEL_DIR = model_path
-    MIN_CONF_THRESH = args["threshold"]
+    CONFIDENCE_THRESH = args["threshold"]
 
     # Get the desired image dimensions
     resW, resH = args["resolution"].split('x')
     imW, imH = int(resW), int(resH)
 
     # Declare variables and constants for navigation
-    checkpoint_detection = False
-    detections = False
-    min_distance = 120
+    min_distance = 130
     numFrames = 0
 
     # Load TF Lite model
@@ -289,7 +204,7 @@ if __name__ == "__main__":
 
     # Initialize video stream and the FPS counter
     print('[INFO] running inference for realsense camera...')
-    video = RealSenseVideo(width=imW, height=imH).start()
+    video = RealSense(width=imW, height=imH).start()
     fps = FPS().start()
     time.sleep(1)
 
@@ -318,9 +233,8 @@ if __name__ == "__main__":
         visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         
         points = get_object_info(depth_frame, boxes, scores, imH, imW)        
-        for point in points:
-            # Extract the distance and bounding box coordinates 
-            dist, coords = point
+        for (dist, coords) in points:
+            # Extract the bounding box coordinates 
             startX, startY, endX, endY = coords
             
             # Find the midpoint coordinates
@@ -331,7 +245,7 @@ if __name__ == "__main__":
             cv2.circle(frame, (midX, midY), radius=5, 
                 color=(0,0,255), thickness=2)
             
-            # Display the distance of each object from the camera
+            # Display the distance of the object from the camera
             text = "Distance: {}cm".format(dist)
             cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.6, (0, 0, 255), thickness=2)
@@ -339,12 +253,6 @@ if __name__ == "__main__":
             # Determine what command to give to the user
             navigate(frame, depth_frame, dist, startX, endX)
             break
-
-        if not checkpoint_detection:
-            check_checkpoints(frame, depth_frame, False)
-            
-        checkpoint_detection = False
-        detections = False
         
         # Increment the frame counter
         numFrames += 1

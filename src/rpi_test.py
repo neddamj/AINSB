@@ -52,14 +52,14 @@ def visualize_boxes(frame, depth_frame, boxes, scores, classes, H, W):
         # Draw bounding box
         cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
 
-def get_object_info(depth_frame, detections, scores, H, W, confidence=0.5):
+def get_object_info(depth_frame, detections, scores, H, W):
     # Initialize list to store bounding box coordinates of each bounding box
     # and the distance of each block
     object_info = []
 
     for detection, score in zip(detections, scores):
         # Only move forward if score is above the threshold
-        if score > confidence:
+        if score > CONFIDENCE_THRESH:
             # Extract the coordinates of the detections and normalize each detection
             y1, x1, y2, x2 = detection
             y1 = int(H*y1)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         model_path = '/home/pi/tflite/model.tflite'
         
     PATH_TO_MODEL_DIR = model_path
-    MIN_CONF_THRESH = args["threshold"]
+    CONFIDENCE_THRESH = args["threshold"]
 
     # Get the desired image dimensions
     resW, resH = args["resolution"].split('x')
