@@ -1,12 +1,13 @@
 '''
     Author: Jordan Madden
-    Desccription: Allows the efficient use of the Intel Realsense D415 camera by reading the
-                  data from the camera on its own thread
+    Desccription: Collection of utility classes and functions that allow for the 
+                  efficient use of the Intel Realsense D415 camera
             
 '''
 
 import pyrealsense2.pyrealsense2 as rs
 from threading import Thread
+import numpy as np
 
 class RealSense:
     def __init__(self, width=640, height=480):
@@ -67,3 +68,28 @@ class RealSense:
         # Stop the video stream
         self.stopped = True
         self.pipeline.stop()
+
+def filter_distance(depth_frame, x, y):
+    #List to store the consecutive distance values and randomly initialized variable
+    distances = []
+    positive = np.random.randint(low=30, high=100)
+
+    i = 0
+    while(i < 75):
+        # Extract the depth value from the camera
+        dist = int(depth_frame.get_distance(x, y) * 100)
+        
+        # Store the last positive value for use in the event that the
+        # value returned is 0
+        if dist != 0:
+            positive = dist
+        elif dist == 0:
+            positive == positive
+
+        # Add the distances to the list
+        distances.append(positive)
+        i += 1
+
+    # Convert the list to a numpy array and return it
+    distances = np.asarray(distances)
+    return int(distances.mean())
