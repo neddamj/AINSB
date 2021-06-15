@@ -75,7 +75,7 @@ def filter_distance(depth_frame, x, y):
     positive = np.random.randint(low=30, high=100)
 
     i = 0
-    while(i < 75):
+    while(i < 50):
         # Extract the depth value from the camera
         dist = int(depth_frame.get_distance(x, y) * 100)
         
