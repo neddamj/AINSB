@@ -5,7 +5,7 @@
  *              BJT Collector -> Motor GND
 */
 
-#define MOTOR 8
+#define MOTOR A1
 
 void setup() {
   pinMode(MOTOR, OUTPUT);
