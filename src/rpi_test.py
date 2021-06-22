@@ -225,10 +225,15 @@ if __name__ == "__main__":
         # Normalize pixel values if using a floating model(non-quantized model)
         if floating_model:
             input_data = (np.float32(input_data) - input_mean) / input_std
+            
+        # Measure the time for a single forward pass
+        start = time.time()
         
         # Run the object detection and get the results
         boxes, classes, scores = detect(input_data, input_details, output_details)
-         
+        
+        print("[INFO] A foward pass takes {:.3f}s".format(time.time() - start))
+        
         # Visualize the detections
         visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         

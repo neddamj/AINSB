@@ -70,8 +70,7 @@ def get_object_info(depth_frame, detections, scores, H, W):
             # Get the midpoint of each bounding box
             midX = (x1 + x2)//2
             midY = (y1 + y2)//2
-
-            # Find the distance of each point
+            
             distance = filter_distance(depth_frame, midX, midY)
 
             # Add the coordinates to the coordinate list and the 
@@ -137,7 +136,7 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_right = 640 - right
     
     # Get the depth profile on either side of the object
-    profile_w = 110
+    profile_w = 100
     y_offset = 30
     left_profile = get_depth_profile(depth_frame, profile_w, left-profile_w, midY+y_offset)
     right_profile = get_depth_profile(depth_frame, profile_w, right, midY+y_offset)   
