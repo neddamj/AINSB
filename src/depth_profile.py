@@ -12,8 +12,18 @@ import cv2
 
 def get_depth_profile(depth_frame, profile_width, X, Y):
     # Ensure the coordiantes fall within the frame
+    if (X < 0):
+        X = 0
+    if (X >= 640):
+        X = 639
+    if (Y < 0):
+        Y = 0
+    if (Y >= 480):
+        Y = 479
+    
+    # Ensure the profile width falls within the frame
     if (profile_width >= 640-X):
-        profile_width = 640-X
+        profile_width = 639-X
     else:
         profile_width = profile_width
     
