@@ -3,6 +3,8 @@
     Usage: python train_recognizer.py
 '''
 
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
 from imutils import paths
@@ -105,11 +107,24 @@ le = LabelEncoder()
 labels = le.fit_transform(data["names"])
 print("DONE")
 
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(data["embeddings"], labels, 
+        test_size=0.20,random_state=109)
+
 # Train the model used to actually recognize the faces
 print("[INFO] training model...", end="")
 recognizer = SVC(C=1.0, kernel="linear", probability=True)
-recognizer.fit(data["embeddings"], labels)
+recognizer.fit(X_train, y_train)
 print("DONE")
+
+# Make prediction on test dataset and determine model metrics
+y_pred = recognizer.predict(X_test)
+acc = accuracy_score(y_test, y_pred)
+prec = precision_score(y_test, y_pred, average='weighted', zero_division=1)
+recall = recall_score(y_test, y_pred, average='weighted')
+print("Accuracy: {:.2f}".format(acc))
+print("Precision: {:.2f}".format(prec))
+print("Recall: {:.2f}".format(recall))
 
 # Write the actual face recognition model to disk
 f = open(RECOGNIZER, "wb")
