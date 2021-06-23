@@ -1,7 +1,7 @@
 # python yolo_webcam_rpi.py
 
 # import the necessary packages
-from realsense import Realsense
+from realsense import RealSense
 import numpy as np
 import argparse
 import imutils
@@ -43,7 +43,7 @@ while True:
 
     # Acquire frame and resize to expected shape [1xHxWx3]
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = cv2.resize(frame_rgb, (width, height))
+    frame = cv2.resize(frame_rgb, (640, 480))
     input_data = np.expand_dims(frame, axis=0)
 
     #Get the frame dimensions
