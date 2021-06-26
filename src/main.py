@@ -181,31 +181,29 @@ if __name__ == "__main__":
     min_distance = 130
     numFrames = 0
 
-    # Load TF Lite model
+    # Load TFLite model
     print('[INFO] loading model...')
     start_time = time.time()
     interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)    
     end_time = time.time()
     elapsed_time = end_time - start_time
     print('Done! Took {} seconds'.format(elapsed_time))
-
+    
+    # Initalize params for TFLite  model
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
-
     floating_model = (input_details[0]['dtype'] == np.float32)
-
     input_mean = 127.5
     input_std = 127.5
 
     # Initialize video stream and the FPS counter
+    time.sleep(2.0)
     print('[INFO] running inference for realsense camera...')
     video = RealSense(width=imW, height=imH).start()
-    fps = FPS().start()
-    time.sleep(1)
+    fps = FPS().start()    
 
     while True:
         # Get the video frames from the camera
@@ -221,16 +219,15 @@ if __name__ == "__main__":
         frame_resized = cv2.resize(frame_rgb, (width, height))
         input_data = np.expand_dims(frame_resized, axis=0)
 
-        # Normalize pixel values if using a floating model(non-quantized model)
+        # Normalize pixel values if using a floating model
         if floating_model:
             input_data = (np.float32(input_data) - input_mean) / input_std
         
-        # Run the object detection and get the results
+        # Run the object detection and visualze the results
         boxes, classes, scores = detect(input_data, input_details, output_details)
-         
-        # Visualize the detections
         visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         
+        # Get the distance-coordinate pairs
         points = get_object_info(depth_frame, boxes, scores, imH, imW)        
         for (dist, coords) in points:
             # Extract the bounding box coordinates 
@@ -244,7 +241,7 @@ if __name__ == "__main__":
             cv2.circle(frame, (midX, midY), radius=5, 
                 color=(0,0,255), thickness=2)
             
-            # Display the distance of the object from the camera
+                # Display the distance of the object from the camera
             text = "Distance: {}cm".format(dist)
             cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.6, (0, 0, 255), thickness=2)
@@ -256,7 +253,7 @@ if __name__ == "__main__":
         # Increment the frame counter
         numFrames += 1
                 
-        # All the results have been drawn on the frame, so it's time to display it.
+        # Display the output frame
         cv2.imshow('Object Detector', frame)
 
         # Update FPS counter
