@@ -1,6 +1,6 @@
 '''
     Author: Jordan Madden
-    Usage: python main.py  
+    Usage: python rpi_test.py  
 '''
 
 from realsense import RealSense, filter_distance
@@ -70,8 +70,7 @@ def get_object_info(depth_frame, detections, scores, H, W):
             # Get the midpoint of each bounding box
             midX = (x1 + x2)//2
             midY = (y1 + y2)//2
-
-            # Find the distance of each point
+            
             distance = filter_distance(depth_frame, midX, midY)
 
             # Add the coordinates to the coordinate list and the 
@@ -83,20 +82,18 @@ def get_object_info(depth_frame, detections, scores, H, W):
     return object_info
 
 def command(val, frame):
-    # Do not send a command every frame
-    if numFrames % 2 == 0:
-        # Send data to chip so that it can provide feedback
-        try:
-            send_feedback_command(val)
-        except:
-            print("Remote IOError: No I2C/TWI connection is present")
-        
-        # Display command on the screen
-        text = "Command: {}".format(val)
-        print(text)
-        cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
-        cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                0.5, (0, 0, 0), thickness=2)
+    # Send data to chip so that it can provide feedback
+    try:
+        send_feedback_command(val)
+    except:
+        print("Remote IOError: No I2C/TWI connection is present")
+       
+    # Display command on the screen
+    text = "Command: {}".format(val)
+    print(text)
+    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
+    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 0), thickness=2)
     
 def send_feedback_command(command):    
     if command == "Forward":
@@ -137,7 +134,7 @@ def navigate(frame, depth_frame, dist, left, right):
     dist_right = 640 - right
     
     # Get the depth profile on either side of the object
-    profile_w = 110
+    profile_w = 100
     y_offset = 30
     left_profile = get_depth_profile(depth_frame, profile_w, left-profile_w, midY+y_offset)
     right_profile = get_depth_profile(depth_frame, profile_w, right, midY+y_offset)   
@@ -182,31 +179,29 @@ if __name__ == "__main__":
     min_distance = 130
     numFrames = 0
 
-    # Load TF Lite model
+    # Load TFLite model
     print('[INFO] loading model...')
     start_time = time.time()
     interpreter = tflite.Interpreter(model_path=PATH_TO_MODEL_DIR)    
     end_time = time.time()
     elapsed_time = end_time - start_time
     print('Done! Took {} seconds'.format(elapsed_time))
-
+    
+    # Initalize params for TFLite  model
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
-
     floating_model = (input_details[0]['dtype'] == np.float32)
-
     input_mean = 127.5
     input_std = 127.5
 
     # Initialize video stream and the FPS counter
+    time.sleep(2.0)
     print('[INFO] running inference for realsense camera...')
     video = RealSense(width=imW, height=imH).start()
-    fps = FPS().start()
-    time.sleep(1)
+    fps = FPS().start()    
 
     while True:
         # Get the video frames from the camera
@@ -222,47 +217,47 @@ if __name__ == "__main__":
         frame_resized = cv2.resize(frame_rgb, (width, height))
         input_data = np.expand_dims(frame_resized, axis=0)
 
-        # Normalize pixel values if using a floating model(non-quantized model)
+        # Normalize pixel values if using a floating model
         if floating_model:
             input_data = (np.float32(input_data) - input_mean) / input_std
-            
-        # Measure the time for a single forward pass
-        start = time.time()
         
-        # Run the object detection and get the results
+        # Run the object detection and visualze the results
         boxes, classes, scores = detect(input_data, input_details, output_details)
-        
-        print("[INFO] A foward pass takes {:.3f}s".format(time.time() - start))
-        
-        # Visualize the detections
         visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         
-        points = get_object_info(depth_frame, boxes, scores, imH, imW)        
-        for (dist, coords) in points:
-            # Extract the bounding box coordinates 
-            startX, startY, endX, endY = coords
-            
-            # Find the midpoint coordinates
-            midX = (startX+endX)//2
-            midY = (startY+endY)//2
-            
-            # Draw a circle at the midpoint for visual validation
-            cv2.circle(frame, (midX, midY), radius=5, 
-                color=(0,0,255), thickness=2)
-            
-            # Display the distance of the object from the camera
-            text = "Distance: {}cm".format(dist)
-            cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
-                0.6, (0, 0, 255), thickness=2)
+        # Get the distance-coordinate pairs
+        points = get_object_info(depth_frame, boxes, scores, imH, imW)
+        
+        # If there are no detections, move forward. otherwise make navigation
+        # decision
+        if (len(points) == 0):
+            command("Forward", frame) 
+        else:  
+            for (dist, coords) in points:
+                # Extract the bounding box coordinates 
+                startX, startY, endX, endY = coords
+                
+                # Find the midpoint coordinates
+                midX = (startX+endX)//2
+                midY = (startY+endY)//2
+                
+                # Draw a circle at the midpoint for visual validation
+                cv2.circle(frame, (midX, midY), radius=5, 
+                    color=(0,0,255), thickness=2)
+                
+                    # Display the distance of the object from the camera
+                text = "Distance: {}cm".format(dist)
+                cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.6, (0, 0, 255), thickness=2)
 
-            # Determine what command to give to the user
-            navigate(frame, depth_frame, dist, startX, endX)
-            break
+                # Determine what command to give to the user
+                navigate(frame, depth_frame, dist, startX, endX)
+                break
         
         # Increment the frame counter
         numFrames += 1
                 
-        # All the results have been drawn on the frame, so it's time to display it.
+        # Display the output frame
         cv2.imshow('Object Detector', frame)
 
         # Update FPS counter

@@ -82,20 +82,18 @@ def get_object_info(depth_frame, detections, scores, H, W):
     return object_info
 
 def command(val, frame):
-    # Do not send a command every frame
-    if numFrames % 2 == 0:
-        # Send data to chip so that it can provide feedback
-        try:
-            send_feedback_command(val)
-        except:
-            print("Remote IOError: No I2C/TWI connection is present")
-        
-        # Display command on the screen
-        text = "Command: {}".format(val)
-        print(text)
-        cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
-        cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                0.5, (0, 0, 0), thickness=2)
+    # Send data to chip so that it can provide feedback
+    try:
+        send_feedback_command(val)
+    except:
+        print("Remote IOError: No I2C/TWI connection is present")
+       
+    # Display command on the screen
+    text = "Command: {}".format(val)
+    print(text)
+    cv2.rectangle(frame, (0, 0), (180, 25), (255, 255, 255), -1)
+    cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 0), thickness=2)
     
 def send_feedback_command(command):    
     if command == "Forward":
@@ -228,27 +226,33 @@ if __name__ == "__main__":
         visualize_boxes(frame, depth_frame, boxes, scores, classes, imH, imW)
         
         # Get the distance-coordinate pairs
-        points = get_object_info(depth_frame, boxes, scores, imH, imW)        
-        for (dist, coords) in points:
-            # Extract the bounding box coordinates 
-            startX, startY, endX, endY = coords
-            
-            # Find the midpoint coordinates
-            midX = (startX+endX)//2
-            midY = (startY+endY)//2
-            
-            # Draw a circle at the midpoint for visual validation
-            cv2.circle(frame, (midX, midY), radius=5, 
-                color=(0,0,255), thickness=2)
-            
-                # Display the distance of the object from the camera
-            text = "Distance: {}cm".format(dist)
-            cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
-                0.6, (0, 0, 255), thickness=2)
+        points = get_object_info(depth_frame, boxes, scores, imH, imW)
+        
+        # If there are no detections, move forward. otherwise make navigation
+        # decision
+        if (len(points) == 0):
+            command("Forward", frame) 
+        else:  
+            for (dist, coords) in points:
+                # Extract the bounding box coordinates 
+                startX, startY, endX, endY = coords
+                
+                # Find the midpoint coordinates
+                midX = (startX+endX)//2
+                midY = (startY+endY)//2
+                
+                # Draw a circle at the midpoint for visual validation
+                cv2.circle(frame, (midX, midY), radius=5, 
+                    color=(0,0,255), thickness=2)
+                
+                    # Display the distance of the object from the camera
+                text = "Distance: {}cm".format(dist)
+                cv2.putText(frame, text, (startX, startY+20), cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.6, (0, 0, 255), thickness=2)
 
-            # Determine what command to give to the user
-            navigate(frame, depth_frame, dist, startX, endX)
-            break
+                # Determine what command to give to the user
+                navigate(frame, depth_frame, dist, startX, endX)
+                break
         
         # Increment the frame counter
         numFrames += 1
