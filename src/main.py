@@ -82,9 +82,12 @@ def get_object_info(depth_frame, detections, scores, H, W):
     return object_info
 
 def command(val, frame):
+    global last_command
+    print(last_command)
+    
     # Send data to chip so that it can provide feedback
     try:
-        send_feedback_command(val)
+        send_feedback_command(val, last_command)
     except:
         print("Remote IOError: No I2C/TWI connection is present")
        
@@ -95,15 +98,26 @@ def command(val, frame):
     cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 0, 0), thickness=2)
     
-def send_feedback_command(command):    
-    if command == "Forward":
-        bus.write_byte(addr, 0x01)
-    elif command == "Left":
-        bus.write_byte(addr, 0x02)
-    elif command == "Right":
-        bus.write_byte(addr, 0x03)
-    elif command == "Stop":
-        bus.write_byte(addr, 0x00)
+    # Update the previously sent command 
+    last_command = val
+    
+def send_feedback_command(command, prev_command):
+    if command is not prev_command:
+        # If command is the different rom previous command,
+        # send no signal
+        if command == "Forward":
+            bus.write_byte(addr, 0x01)
+        elif command == "Left":
+            bus.write_byte(addr, 0x02)
+        elif command == "Right":
+            bus.write_byte(addr, 0x03)
+        elif command == "Stop":
+            bus.write_byte(addr, 0x00)
+    else:
+        # If command is same as previous command, turn off
+        # motors
+        bus.write_byte(addr, 0x04)
+        
 
 def checkpoints(depth_frame):
     global checkpoint_detection
@@ -155,8 +169,7 @@ def navigate(frame, depth_frame, dist, left, right):
             if int(left_profile.mean()) > int(right_profile.mean()):
                 command("Left", frame)
             elif int(right_profile.mean()) > int(left_profile.mean()):
-                command("Right", frame)
-            
+                command("Right", frame)            
     else:
         # Move forward if nothing is within the proximity
         command("Forward", frame)    
@@ -196,6 +209,9 @@ if __name__ == "__main__":
     floating_model = (input_details[0]['dtype'] == np.float32)
     input_mean = 127.5
     input_std = 127.5
+    
+    # Initialize commands
+    last_command = "Nada"
 
     # Initialize video stream and the FPS counter
     time.sleep(2.0)
