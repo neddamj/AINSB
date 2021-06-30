@@ -2,7 +2,7 @@
  *  Author: Jordan Madden
  *  Title: Tactile Feedback
  *  Date: 10/1/2021
- *  Description: The atmega328p must receive data from the raspberry pi via the UART serial
+ *  Description: The atmega328p must receive data from the raspberry pi via the I2C serial
  *               communication protocol. Based on the received data it muct then activate 
  *               corresponding vibration motor, thus alerting the user as to which direction
  *               they should move in or whether they should move at all.
@@ -10,9 +10,9 @@
 
 #include <Wire.h>
 
-#define F A1
-#define L A2
-#define R A3 
+#define L A3
+#define F A2
+#define R A1
 
 void setup() {
   // Set the baud rate for serial communication
@@ -31,7 +31,6 @@ void setup() {
 }
 
 void loop(){
-  delay(50);
 }
 
 void receiveEvent(int howMany){
@@ -70,6 +69,13 @@ void stopMoving(){
   Serial.println("Stop Moving");
 }
 
+void hapticsOff(){
+  digitalWrite(L, LOW);
+  digitalWrite(F, LOW);
+  digitalWrite(R, LOW);
+  Serial.println("Motors Off");  
+}
+
 void commandUser(unsigned char recMessage){
   if(recMessage == 1){
     forward();
@@ -80,7 +86,10 @@ void commandUser(unsigned char recMessage){
   else if(recMessage == 3){
     turnRight();
   }
-  else{
+  else if(recMessage == 0){
     stopMoving();
+  }
+  else{
+    hapticsOff();
   }
 }
