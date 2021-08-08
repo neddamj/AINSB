@@ -1,5 +1,5 @@
 # AINSB - AI Navigation System for the Blind
-The aim of this project is to develop a prototype device that helps to enable safe navigation for the blind/visually impaired in various environments. This project is done for partial fulfillment of the BSc. Electronics Engineering at UWI Mona.
+The aim of this project is to develop a prototype device that helps to enable safe navigation for the blind/visually impaired in various environments. This is a research project done in partial fulfillment of the BSc. Electronics Engineering at UWI Mona.
 
 ## Project Overview
 According to the project requirements, the primary objectives of the project are to:
